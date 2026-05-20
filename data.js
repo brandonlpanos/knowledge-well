@@ -632,6 +632,292 @@ Attention(Q,K,V) = softmax(QKᵀ/√d_k)V</div>
     ]
   }
 
+  // ── CLIP ───────────────────────────────────────────────────────────────────
+  {
+    id: 'clip',
+    name: 'CLIP',
+    fullName: 'Contrastive Language–Image Pre-training',
+    tag: 'Multimodal Learning',
+    tagline: 'Language as free supervision for visual representations',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- NxN similarity matrix with bright diagonal = matched image-text pairs -->
+      <text x="5" y="20" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">I</text>
+      <text x="5" y="32" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">I</text>
+      <text x="5" y="44" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">I</text>
+      <text x="5" y="56" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">I</text>
+      <text x="16" y="10" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">T</text>
+      <text x="28" y="10" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">T</text>
+      <text x="40" y="10" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">T</text>
+      <text x="52" y="10" font-family="monospace" font-size="6" fill="currentColor" opacity="0.45">T</text>
+      <rect x="13" y="13" width="10" height="10" fill="currentColor" opacity="0.80" rx="1"/>
+      <rect x="25" y="13" width="10" height="10" fill="currentColor" opacity="0.07" rx="1"/>
+      <rect x="37" y="13" width="10" height="10" fill="currentColor" opacity="0.05" rx="1"/>
+      <rect x="49" y="13" width="10" height="10" fill="currentColor" opacity="0.04" rx="1"/>
+      <rect x="13" y="25" width="10" height="10" fill="currentColor" opacity="0.06" rx="1"/>
+      <rect x="25" y="25" width="10" height="10" fill="currentColor" opacity="0.82" rx="1"/>
+      <rect x="37" y="25" width="10" height="10" fill="currentColor" opacity="0.07" rx="1"/>
+      <rect x="49" y="25" width="10" height="10" fill="currentColor" opacity="0.04" rx="1"/>
+      <rect x="13" y="37" width="10" height="10" fill="currentColor" opacity="0.04" rx="1"/>
+      <rect x="25" y="37" width="10" height="10" fill="currentColor" opacity="0.06" rx="1"/>
+      <rect x="37" y="37" width="10" height="10" fill="currentColor" opacity="0.79" rx="1"/>
+      <rect x="49" y="37" width="10" height="10" fill="currentColor" opacity="0.06" rx="1"/>
+      <rect x="13" y="49" width="10" height="10" fill="currentColor" opacity="0.03" rx="1"/>
+      <rect x="25" y="49" width="10" height="10" fill="currentColor" opacity="0.05" rx="1"/>
+      <rect x="37" y="49" width="10" height="10" fill="currentColor" opacity="0.08" rx="1"/>
+      <rect x="49" y="49" width="10" height="10" fill="currentColor" opacity="0.76" rx="1"/>
+      <text x="36" y="70" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">I · T align</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Language is a free label for everything',
+        body: `<p>Training a computer vision model the classical way is expensive: you need humans to hand-label thousands of images per category, and the set of categories is fixed at training time. Want to recognize a new concept? Collect and label more data. The model is brittle — it knows only what it was explicitly taught.</p>
+<p>CLIP's insight is blunt: <strong>the internet already paired images with language</strong>. Every photo uploaded with a caption, every product image with a description, every news photo with alt-text — this is free, naturally occurring supervision at massive scale (400M pairs).</p>
+<p>Train two encoders — one for images, one for text — so that a photo of a dog and the phrase "a dog" land near each other in a shared embedding space. At inference, zero-shot classify anything by comparing an image embedding against text embeddings of candidate labels. No fine-tuning. No new labels. The vocabulary is unbounded.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">from label-supervised → language-supervised</text>
+  <!-- Left: old way -->
+  <rect x="16" y="28" width="120" height="90" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" opacity="0.5"/>
+  <text x="76" y="43" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">standard supervision</text>
+  <rect x="28" y="52" width="36" height="26" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="46" y="69" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">image</text>
+  <rect x="74" y="57" width="46" height="16" rx="2" fill="#0a0a0a" opacity="0.08" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="97" y="69" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">"cat" ← label</text>
+  <path d="M64 65 L74 65" stroke="#0a0a0a" stroke-width="1" marker-end="url(#clp)"/>
+  <text x="76" y="96" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">fixed categories</text>
+  <text x="76" y="108" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">manual, expensive</text>
+  <!-- Right: CLIP way -->
+  <rect x="148" y="28" width="176" height="90" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="236" y="43" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">CLIP — language supervision</text>
+  <rect x="160" y="52" width="36" height="26" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="178" y="69" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">image</text>
+  <rect x="206" y="52" width="102" height="26" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="257" y="64" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">"a photo of a cat</text>
+  <text x="257" y="75" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">sitting on a mat"</text>
+  <path d="M196 65 L206 65" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#clp)"/>
+  <text x="236" y="96" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">free, from the internet</text>
+  <text x="236" y="108" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">open vocabulary · 400M pairs</text>
+  <!-- Zero-shot inference -->
+  <rect x="16" y="136" width="308" height="108" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="152" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">zero-shot inference — no fine-tuning</text>
+  <rect x="28" y="162" width="40" height="32" rx="2" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="48" y="182" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">?</text>
+  <path d="M70 178 L98 178" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#clp)"/>
+  <rect x="100" y="160" width="72" height="14" rx="2" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="136" y="171" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">"a photo of a dog"</text>
+  <rect x="100" y="177" width="72" height="14" rx="2" fill="#0a0a0a" opacity="0.1" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="136" y="188" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">"a photo of a cat" ✓</text>
+  <rect x="100" y="194" width="72" height="14" rx="2" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="136" y="205" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">"a photo of a car"</text>
+  <text x="188" y="168" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">sim: 0.11</text>
+  <text x="188" y="185" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" font-weight="500">sim: 0.89 ←</text>
+  <text x="188" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">sim: 0.08</text>
+  <text x="170" y="232" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">any label expressible in language — no retraining</text>
+  <defs>
+    <marker id="clp" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Core Mechanism',
+        title: 'Contrastive alignment over an N×N matrix',
+        body: `<p>Given a batch of N image-text pairs, CLIP computes <em>all</em> N² pairwise similarities between image and text embeddings, forming an N×N matrix. The N diagonal entries are the correct (matched) pairs; all N²−N off-diagonal entries are incorrect (unmatched) pairs acting as negatives.</p>
+<p>The objective is a <strong>symmetric cross-entropy loss</strong> over this matrix — once treating each image as the query to find its text, and once treating each text as the query to find its image. This symmetry ensures both encoders pull matched representations together from both directions simultaneously.</p>
+<p>The key advantage over earlier image-text models (which used a predictive objective, directly generating captions): contrastive learning doesn't require generating tokens. It only needs to judge similarity, which scales far more efficiently — a single batch of N=32,768 pairs provides ~10⁹ negative examples.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">N×N similarity matrix (batch of N pairs)</text>
+  <!-- Axis labels: images (rows) -->
+  <text x="22" y="44" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">I₁</text>
+  <text x="22" y="78" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">I₂</text>
+  <text x="22" y="112" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">I₃</text>
+  <text x="22" y="146" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">I₄</text>
+  <!-- Axis labels: texts (cols) -->
+  <text x="50" y="24" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">T₁</text>
+  <text x="84" y="24" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">T₂</text>
+  <text x="118" y="24" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">T₃</text>
+  <text x="152" y="24" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">T₄</text>
+  <!-- Row 1 -->
+  <rect x="32" y="28" width="32" height="32" fill="#0a0a0a" opacity="0.80" rx="1"/>
+  <rect x="66" y="28" width="32" height="32" fill="#0a0a0a" opacity="0.06" rx="1"/>
+  <rect x="100" y="28" width="32" height="32" fill="#0a0a0a" opacity="0.04" rx="1"/>
+  <rect x="134" y="28" width="32" height="32" fill="#0a0a0a" opacity="0.05" rx="1"/>
+  <!-- Row 2 -->
+  <rect x="32" y="62" width="32" height="32" fill="#0a0a0a" opacity="0.07" rx="1"/>
+  <rect x="66" y="62" width="32" height="32" fill="#0a0a0a" opacity="0.82" rx="1"/>
+  <rect x="100" y="62" width="32" height="32" fill="#0a0a0a" opacity="0.08" rx="1"/>
+  <rect x="134" y="62" width="32" height="32" fill="#0a0a0a" opacity="0.04" rx="1"/>
+  <!-- Row 3 -->
+  <rect x="32" y="96" width="32" height="32" fill="#0a0a0a" opacity="0.05" rx="1"/>
+  <rect x="66" y="96" width="32" height="32" fill="#0a0a0a" opacity="0.06" rx="1"/>
+  <rect x="100" y="96" width="32" height="32" fill="#0a0a0a" opacity="0.79" rx="1"/>
+  <rect x="134" y="96" width="32" height="32" fill="#0a0a0a" opacity="0.07" rx="1"/>
+  <!-- Row 4 -->
+  <rect x="32" y="130" width="32" height="32" fill="#0a0a0a" opacity="0.04" rx="1"/>
+  <rect x="66" y="130" width="32" height="32" fill="#0a0a0a" opacity="0.05" rx="1"/>
+  <rect x="100" y="130" width="32" height="32" fill="#0a0a0a" opacity="0.08" rx="1"/>
+  <rect x="134" y="130" width="32" height="32" fill="#0a0a0a" opacity="0.77" rx="1"/>
+  <!-- Diagonal label -->
+  <text x="48" y="48" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#f8f8f6" text-anchor="middle">+</text>
+  <text x="82" y="82" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#f8f8f6" text-anchor="middle">+</text>
+  <text x="116" y="116" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#f8f8f6" text-anchor="middle">+</text>
+  <text x="150" y="150" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#f8f8f6" text-anchor="middle">+</text>
+  <!-- Annotations right side -->
+  <text x="182" y="44" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">diagonal: N matched</text>
+  <text x="182" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">pairs — maximize sim</text>
+  <path d="M178 44 L168 44" stroke="#0a0a0a" stroke-width="1" marker-end="url(#clm)"/>
+  <text x="182" y="110" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">N²−N negatives</text>
+  <text x="182" y="122" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">minimize sim</text>
+  <path d="M178 112 L166 96" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5" marker-end="url(#clm)"/>
+  <!-- Symmetric loss box -->
+  <rect x="16" y="174" width="308" height="72" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="191" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">symmetric cross-entropy</text>
+  <text x="170" y="208" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">L = ½ · (L_image→text  +  L_text→image)</text>
+  <text x="170" y="226" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">each row is a softmax over N texts (image query)</text>
+  <text x="170" y="238" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">each column is a softmax over N images (text query)</text>
+  <defs>
+    <marker id="clm" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Architecture',
+        title: 'Dual encoder, joint embedding space',
+        body: `<p>CLIP jointly trains two encoders. The <strong>image encoder</strong> is either a ResNet (modified with attention pooling) or a Vision Transformer (ViT-L/14 in the strongest published variant). The <strong>text encoder</strong> is a 12-layer Transformer with masked self-attention (causal), operating on BPE-tokenized text up to 76 tokens. The [EOS] token's representation serves as the text embedding.</p>
+<p>Both encoders project into a shared <em>d</em>-dimensional embedding space via learned linear projections W_I and W_T. Embeddings are L2-normalized before computing similarity, so all comparisons are cosine similarities in the range [−1, 1].</p>
+<p>A scalar <strong>temperature τ</strong> (initialized to ln(1/0.07) ≈ 2.65, learned during training) scales the logits before softmax — equivalent to dividing by τ. This controls how sharply the model distinguishes similar pairs. Notably, the temperature is learned end-to-end, and the authors clip it to prevent training instability from τ collapsing to zero.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">CLIP dual-encoder architecture</text>
+  <!-- IMAGE PATH (top) -->
+  <rect x="16" y="28" width="44" height="28" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="38" y="42" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">image</text>
+  <text x="38" y="51" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">H×W×3</text>
+  <path d="M60 42 L76 42" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="78" y="26" width="72" height="32" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="114" y="41" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Image Encoder</text>
+  <text x="114" y="52" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">ViT-L/14 or ResNet</text>
+  <path d="M150 42 L166 42" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="168" y="26" width="52" height="32" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="194" y="41" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">W_I</text>
+  <text x="194" y="52" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">projection</text>
+  <path d="M220 42 L244 42" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="246" y="30" width="76" height="24" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="284" y="43" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">ê_I  (L2 norm)</text>
+  <!-- TEXT PATH (bottom) -->
+  <rect x="16" y="178" width="44" height="28" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="38" y="191" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">"a photo</text>
+  <text x="38" y="201" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">of a dog"</text>
+  <path d="M60 192 L76 192" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="78" y="176" width="72" height="32" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="114" y="191" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Text Encoder</text>
+  <text x="114" y="202" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">Transformer  [EOS]</text>
+  <path d="M150 192 L166 192" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="168" y="176" width="52" height="32" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="194" y="191" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">W_T</text>
+  <text x="194" y="202" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">projection</text>
+  <path d="M220 192 L244 192" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="246" y="180" width="76" height="24" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="284" y="195" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">ê_T  (L2 norm)</text>
+  <!-- Shared space + similarity -->
+  <path d="M284 54 L284 100" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <path d="M284 180 L284 134" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cla)"/>
+  <rect x="236" y="100" width="88" height="34" rx="2" stroke="#0a0a0a" stroke-width="2" fill="#eeeeea"/>
+  <text x="280" y="116" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">cos_sim / τ</text>
+  <text x="280" y="127" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">ê_I · ê_T  (scalar)</text>
+  <!-- shared space label -->
+  <rect x="16" y="98" width="208" height="40" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" opacity="0.5"/>
+  <text x="120" y="115" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">shared d-dimensional</text>
+  <text x="120" y="127" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">embedding space  ℝᵈ</text>
+  <!-- temperature note -->
+  <text x="170" y="158" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">τ  learned · init ln(1/0.07) ≈ 2.65 · clipped to prevent collapse</text>
+  <defs>
+    <marker id="cla" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'InfoNCE objective and zero-shot transfer',
+        body: `<p>For a batch of N pairs, let <em>s_{ij} = ê_I_i · ê_T_j / τ</em> be the scaled cosine similarity. The symmetric InfoNCE loss is:</p>
+<div class="math-block">L = −(1/2N) Σᵢ [ log exp(sᵢᵢ) / Σⱼ exp(sᵢⱼ)
+                  + log exp(sᵢᵢ) / Σⱼ exp(sⱼᵢ) ]</div>
+<p>The first term classifies each image to its paired text (row softmax); the second classifies each text to its paired image (column softmax). Minimizing this is equivalent to maximizing mutual information between the two modalities — specifically, a lower bound known as <strong>InfoNCE</strong>.</p>
+<p><strong>Zero-shot classification</strong> on a K-class dataset: generate K prompt embeddings {ê_T_k} using a template such as <em>"a photo of a {classname}"</em>. For a test image with embedding ê_I, predict:</p>
+<div class="math-block">p(y=k | image) = exp(ê_I · ê_T_k / τ) / Σⱼ exp(ê_I · ê_T_j / τ)</div>
+<p>On ImageNet this achieves 76.2% top-1 accuracy — matching a supervised ResNet-50 trained on 1.28M labeled examples. Crucially, CLIP is far more robust to distribution shift: on ImageNet-V2, ImageNet-Sketch, and ObjectNet, it outperforms supervised models by +5–15% because language supervision encourages representations that generalize beyond dataset-specific textures and artifacts.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">zero-shot classification pipeline</text>
+  <!-- Test image -->
+  <rect x="16" y="28" width="48" height="40" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="40" y="51" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">test</text>
+  <text x="40" y="62" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">image</text>
+  <path d="M64 48 L84 48" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#czs)"/>
+  <rect x="86" y="34" width="60" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="116" y="51" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Image Enc.</text>
+  <path d="M146 48 L166 48" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#czs)"/>
+  <rect x="168" y="36" width="52" height="24" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="194" y="51" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">ê_I</text>
+  <!-- Class prompts -->
+  <text x="40" y="98" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">class labels</text>
+  <text x="40" y="110" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">→ prompts</text>
+  <rect x="62" y="104" width="88" height="12" rx="1" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="106" y="113" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">"a photo of a cat"</text>
+  <rect x="62" y="118" width="88" height="12" rx="1" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="106" y="127" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">"a photo of a dog"</text>
+  <rect x="62" y="132" width="88" height="12" rx="1" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="106" y="141" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">"a photo of a car"</text>
+  <path d="M150 121 L166 110" stroke="#0a0a0a" stroke-width="1" marker-end="url(#czs)"/>
+  <path d="M150 124 L166 124" stroke="#0a0a0a" stroke-width="1" marker-end="url(#czs)"/>
+  <path d="M150 127 L166 136" stroke="#0a0a0a" stroke-width="1" marker-end="url(#czs)"/>
+  <rect x="168" y="98" width="52" height="14" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="194" y="109" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">ê_T (cat)</text>
+  <rect x="168" y="115" width="52" height="14" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="194" y="126" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">ê_T (dog)</text>
+  <rect x="168" y="132" width="52" height="14" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="194" y="143" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">ê_T (car)</text>
+  <!-- Dot products -->
+  <path d="M220 48 L242 48 L242 108" stroke="#0a0a0a" stroke-width="1" marker-end="url(#czs)"/>
+  <path d="M220 122 L242 122" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5" marker-end="url(#czs)"/>
+  <path d="M220 139 L242 139 L242 136" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5" marker-end="url(#czs)"/>
+  <rect x="244" y="100" width="52" height="14" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="270" y="111" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">0.89  ← ✓</text>
+  <rect x="244" y="116" width="52" height="14" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="270" y="127" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">0.11</text>
+  <rect x="244" y="132" width="52" height="14" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="270" y="143" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">0.06</text>
+  <text x="246" y="96" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">ê_I · ê_T / τ</text>
+  <!-- softmax arrow -->
+  <path d="M296 122 L314 122" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#czs)"/>
+  <text x="300" y="119" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">softmax</text>
+  <text x="318" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">cat</text>
+  <!-- Robustness note + ImageNet result -->
+  <rect x="16" y="166" width="308" height="80" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="5 3" fill="#eeeeea"/>
+  <text x="26" y="183" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">ImageNet zero-shot:  76.2% top-1</text>
+  <text x="26" y="198" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#555">≈ supervised ResNet-50 (76.5%) — no labeled data</text>
+  <text x="26" y="216" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Distribution robustness (+5–15% vs supervised):</text>
+  <text x="26" y="230" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">ImageNet-V2  ·  ImageNet-Sketch  ·  ObjectNet</text>
+  <text x="26" y="241" font-family="'JetBrains Mono',monospace" font-size="7" fill="#aaa">language supervision avoids dataset-specific texture shortcuts</text>
+  <defs>
+    <marker id="czs" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
