@@ -1455,6 +1455,269 @@ y_ij = −1  if i ≠ j  (unmatched)</div>
     ]
   },
 
+  // ── DINO / DINOv2 ──────────────────────────────────────────────────────────
+  {
+    id: 'dino',
+    name: 'DINO',
+    fullName: 'Self-Distillation with No Labels / DINOv2',
+    tag: 'Self-Supervised Learning',
+    tagline: 'A ViT that teaches itself — and learns to see objects for free',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Student (solid, left) -->
+      <rect x="4" y="22" width="24" height="28" rx="2" stroke="currentColor" stroke-width="1.5"/>
+      <text x="16" y="33" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.6">local</text>
+      <text x="16" y="41" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">ViT</text>
+      <text x="16" y="50" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.6">student</text>
+      <text x="16" y="18" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.6">θ_s</text>
+      <!-- Teacher (dashed, right) -->
+      <rect x="44" y="22" width="24" height="28" rx="2" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/>
+      <text x="56" y="33" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.5">global</text>
+      <text x="56" y="41" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle" opacity="0.7">ViT</text>
+      <text x="56" y="50" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.5">teacher</text>
+      <text x="56" y="18" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.5">θ_t</text>
+      <!-- EMA arrow top -->
+      <path d="M28 26 C 36 16 36 16 44 26" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" fill="none" marker-end="url(#dno)" opacity="0.55"/>
+      <text x="36" y="15" font-family="monospace" font-size="4.5" fill="currentColor" text-anchor="middle" opacity="0.55">EMA</text>
+      <!-- Centering block in middle -->
+      <rect x="28" y="38" width="16" height="8" rx="1" stroke="currentColor" stroke-width="1" fill="currentColor" opacity="0.08"/>
+      <text x="36" y="44.5" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle">−c</text>
+      <!-- cross-entropy loss label -->
+      <text x="36" y="62" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">H(p_t, p_s)</text>
+      <text x="36" y="70" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.6">no labels</text>
+      <defs>
+        <marker id="dno" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+          <path d="M0,0 L0,5 L4,2.5 z" fill="currentColor"/>
+        </marker>
+      </defs>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Self-distillation — a teacher made from the student\'s own past',
+        body: `<p>Distillation usually means compressing a large trained model into a smaller one. DINO asks: what if the "teacher" isn't pre-trained at all — what if it's just a <strong>slow-moving copy of the student itself</strong>? Train the student to predict what the teacher would output for the same image seen from a different angle, and you get remarkably good representations — with no labels whatsoever.</p>
+<p>The key trick is <strong>asymmetric crops</strong>: the student sees small local patches (96×96); the teacher sees large global views (224×224). The student must predict global scene semantics from limited local context. This forces it to learn structure, not just texture — which is exactly why DINO ViT attention maps spontaneously produce object segmentations with no pixel-level supervision.</p>
+<p>DINOv2 (2023) keeps this framework but scales it systematically: a curated 142M-image dataset, a combined image-level + patch-level objective, and a KoLeo entropy regularizer that spreads features uniformly across the embedding space. The result is a ViT-g with 86.5% ImageNet linear accuracy — general-purpose visual features competitive with task-specific supervised models.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">local → global prediction + emergent segmentation</text>
+  <!-- Image with crops -->
+  <rect x="16" y="24" width="80" height="80" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="56" y="68" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">image x</text>
+  <!-- Global crops (large, dashed) -->
+  <rect x="20" y="28" width="68" height="68" rx="1" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="56" y="104" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">global crop 224²</text>
+  <!-- Local crops (small) -->
+  <rect x="20" y="28" width="28" height="28" rx="1" fill="#0a0a0a" opacity="0.12" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="34" y="52" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a" text-anchor="middle">96²</text>
+  <!-- Arrows to networks -->
+  <path d="M56 108 L56 120" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#dna)"/>
+  <path d="M30 56 L28 56 L28 125 L110 125" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#dna)"/>
+  <!-- Teacher box -->
+  <rect x="110" y="114" width="66" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="143" y="129" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">teacher ViT</text>
+  <text x="56" y="114" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">↓ global</text>
+  <!-- Student box -->
+  <rect x="110" y="150" width="66" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="143" y="165" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">student ViT</text>
+  <text x="56" y="148" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">↑ local</text>
+  <!-- Loss -->
+  <path d="M176 125 L210 138" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#dna)"/>
+  <path d="M176 161 L210 150" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#dna)"/>
+  <rect x="212" y="134" width="56" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="240" y="147" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">H(p_t, p_s)</text>
+  <text x="240" y="163" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">backprop student only</text>
+  <!-- Emergent attention demo -->
+  <rect x="16" y="186" width="308" height="62" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="201" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">emergent property: object segmentation in attention</text>
+  <!-- fake attention grid -->
+  <rect x="26" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.08" rx="1"/>
+  <rect x="44" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.07" rx="1"/>
+  <rect x="62" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.75" rx="1"/>
+  <rect x="80" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.80" rx="1"/>
+  <rect x="98" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.72" rx="1"/>
+  <rect x="116" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.06" rx="1"/>
+  <rect x="134" y="208" width="16" height="16" fill="#0a0a0a" opacity="0.05" rx="1"/>
+  <text x="85" y="238" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">self-attn last block</text>
+  <text x="85" y="246" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">no seg supervision</text>
+  <text x="220" y="228" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">k-NN classification:</text>
+  <text x="220" y="241" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">78.3% top-1 (zero fine-tuning)</text>
+  <defs>
+    <marker id="dna" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Core Mechanism',
+        title: 'Centering + sharpening — two failure modes, one solution',
+        body: `<p>Without any stabilization, DINO collapses in two distinct ways. If the teacher outputs unconstrained logits, one dimension dominates and all images map to the same token — mode collapse. If the teacher outputs near-uniform distributions, the cross-entropy carries no learning signal — uniform collapse. DINO prevents both simultaneously with two opposing forces.</p>
+<p><strong>Centering</strong> subtracts a running mean c from the teacher's output before softmax, computed as an EMA of recent teacher outputs: c ← m·c + (1−m)·mean_batch(g_θt(x)). This prevents any single dimension from monopolizing the distribution. But centering alone leads to uniform outputs — hence sharpening.</p>
+<p><strong>Sharpening</strong> uses a very low teacher temperature τ_t ≈ 0.04–0.07 (vs student τ_s = 0.1). Dividing by a small number before softmax makes the teacher's distribution peaky — a high-confidence pseudo-label. Together, centering keeps distributions spread across dimensions while sharpening keeps them informative. The student (higher temperature) predicts a softer version of the teacher's sharp signal.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">centering × sharpening — two collapse modes avoided</text>
+  <!-- Three columns: mode collapse, uniform collapse, DINO -->
+  <!-- Mode collapse: no centering -->
+  <text x="56" y="32" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">no centering</text>
+  <text x="56" y="44" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa" text-anchor="middle">mode collapse ✗</text>
+  <!-- bar chart: one tall bar -->
+  <line x1="20" y1="100" x2="92" y2="100" stroke="#0a0a0a" stroke-width="0.7" opacity="0.3"/>
+  <rect x="26" y="55" width="10" height="45" fill="#0a0a0a" opacity="0.75" rx="1"/>
+  <rect x="38" y="96" width="10" height="4" fill="#0a0a0a" opacity="0.1" rx="1"/>
+  <rect x="50" y="97" width="10" height="3" fill="#0a0a0a" opacity="0.1" rx="1"/>
+  <rect x="62" y="97" width="10" height="3" fill="#0a0a0a" opacity="0.08" rx="1"/>
+  <rect x="74" y="98" width="10" height="2" fill="#0a0a0a" opacity="0.06" rx="1"/>
+  <text x="31" y="112" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">all mass</text>
+  <text x="31" y="120" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">one dim</text>
+  <!-- Uniform collapse: no sharpening -->
+  <text x="170" y="32" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">no sharpening</text>
+  <text x="170" y="44" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa" text-anchor="middle">uniform collapse ✗</text>
+  <line x1="134" y1="100" x2="206" y2="100" stroke="#0a0a0a" stroke-width="0.7" opacity="0.3"/>
+  <rect x="140" y="78" width="10" height="22" fill="#0a0a0a" opacity="0.22" rx="1"/>
+  <rect x="152" y="78" width="10" height="22" fill="#0a0a0a" opacity="0.22" rx="1"/>
+  <rect x="164" y="78" width="10" height="22" fill="#0a0a0a" opacity="0.22" rx="1"/>
+  <rect x="176" y="78" width="10" height="22" fill="#0a0a0a" opacity="0.22" rx="1"/>
+  <rect x="188" y="78" width="10" height="22" fill="#0a0a0a" opacity="0.22" rx="1"/>
+  <text x="145" y="112" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">uniform =</text>
+  <text x="145" y="120" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">no signal</text>
+  <!-- DINO: both -->
+  <text x="284" y="32" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">centering + sharp</text>
+  <text x="284" y="44" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">informative ✓</text>
+  <line x1="248" y1="100" x2="320" y2="100" stroke="#0a0a0a" stroke-width="0.7" opacity="0.3"/>
+  <rect x="254" y="62" width="10" height="38" fill="#0a0a0a" opacity="0.75" rx="1"/>
+  <rect x="266" y="80" width="10" height="20" fill="#0a0a0a" opacity="0.35" rx="1"/>
+  <rect x="278" y="90" width="10" height="10" fill="#0a0a0a" opacity="0.12" rx="1"/>
+  <rect x="290" y="95" width="10" height="5" fill="#0a0a0a" opacity="0.08" rx="1"/>
+  <rect x="302" y="97" width="10" height="3" fill="#0a0a0a" opacity="0.05" rx="1"/>
+  <text x="259" y="112" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a">peaked,</text>
+  <text x="259" y="120" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a">balanced</text>
+  <!-- Dividers -->
+  <line x1="113" y1="26" x2="113" y2="130" stroke="#0a0a0a" stroke-width="0.5" opacity="0.2"/>
+  <line x1="227" y1="26" x2="227" y2="130" stroke="#0a0a0a" stroke-width="0.5" opacity="0.2"/>
+  <!-- Centering formula -->
+  <rect x="16" y="138" width="152" height="48" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="92" y="154" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">centering update</text>
+  <text x="92" y="169" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">c ← m·c + (1−m)·μ_batch</text>
+  <text x="92" y="180" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">m = 0.9  (EMA of teacher outputs)</text>
+  <!-- Temperature formula -->
+  <rect x="172" y="138" width="152" height="48" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="248" y="154" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">temperatures</text>
+  <text x="248" y="169" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">τ_s = 0.1  (student, soft)</text>
+  <text x="248" y="180" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">τ_t = 0.04–0.07  (teacher, sharp)</text>
+  <!-- Multi-crop summary -->
+  <rect x="16" y="196" width="308" height="52" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#f8f8f6"/>
+  <text x="170" y="212" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">multi-crop strategy</text>
+  <text x="170" y="226" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">teacher: 2 global crops (224²)   student: 2 global + 6-10 local crops (96²)</text>
+  <text x="170" y="240" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">student predicts teacher's global output from each local patch view</text>
+</svg>`
+      },
+
+      {
+        level: 'Architecture',
+        title: 'DINOv2 — curated data, iBOT, and KoLeo',
+        body: `<p>DINO v1 used a 3-layer MLP projection head with output dimension K = 65,536 (a large soft codebook), followed by L2 normalisation and a weight-normalised linear layer. Both student and teacher share this design, with teacher weights updated via EMA (τ cosine-annealed 0.996 → 1.0).</p>
+<p><strong>DINOv2</strong> upgrades three things. First, <strong>data</strong>: the LVD-142M dataset is assembled by using existing curated datasets as semantic seeds, retrieving visually similar images from a 1.2B-image web pool via nearest-neighbour search, then aggressively deduplicating. This eliminates the domain gap between web noise and downstream tasks.</p>
+<p>Second, <strong>loss</strong>: DINOv2 adds an <strong>iBOT patch-level objective</strong> alongside the image-level DINO loss. Randomly masked patches are predicted in representation space (like JEPA, but within the DINO teacher-student framework), giving the model dense spatial understanding in addition to global semantics. A <strong>KoLeo regulariser</strong> — the Kozachenko–Leonenko differential entropy estimator — penalises features that cluster too tightly within a batch, encouraging uniform coverage of the embedding space and improving retrieval by +8%.</p>
+<p>Third, <strong>scale</strong>: ViT-g (1.1B parameters) trained at 224² then fine-tuned at 518² for dense prediction tasks.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">DINO v1 → DINOv2 upgrades</text>
+  <!-- Data pipeline box -->
+  <rect x="16" y="24" width="308" height="50" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="90" y="40" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">LVD-142M data curation</text>
+  <text x="26" y="56" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555">curated seeds → similarity retrieval from 1.2B web images → dedup → 142M</text>
+  <text x="26" y="67" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">removes domain gap between noisy web data and downstream benchmarks</text>
+  <!-- Loss combination -->
+  <rect x="16" y="84" width="308" height="68" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="170" y="100" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">combined objective</text>
+  <line x1="16" y1="106" x2="324" y2="106" stroke="#0a0a0a" stroke-width="0.5" opacity="0.3"/>
+  <rect x="26" y="112" width="84" height="28" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="68" y="125" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">DINO loss</text>
+  <text x="68" y="135" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">image-level H(p_t, p_s)</text>
+  <text x="120" y="128" font-family="'JetBrains Mono',monospace" font-size="10" fill="#0a0a0a">+</text>
+  <rect x="134" y="112" width="84" height="28" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="176" y="125" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">iBOT loss</text>
+  <text x="176" y="135" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">patch-level masking</text>
+  <text x="228" y="128" font-family="'JetBrains Mono',monospace" font-size="10" fill="#0a0a0a">+</text>
+  <rect x="242" y="112" width="74" height="28" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="279" y="125" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">KoLeo</text>
+  <text x="279" y="135" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">entropy reg.</text>
+  <!-- KoLeo explanation -->
+  <rect x="16" y="162" width="148" height="42" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" fill="#f8f8f6"/>
+  <text x="90" y="177" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">KoLeo regulariser</text>
+  <text x="90" y="190" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">L = −(1/n)·Σ log d_nn(z_i)</text>
+  <text x="90" y="199" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">push features apart uniformly</text>
+  <!-- Scale -->
+  <rect x="176" y="162" width="148" height="42" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" fill="#f8f8f6"/>
+  <text x="250" y="177" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">model scale</text>
+  <text x="250" y="190" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">ViT-S/B/L/g  (up to 1.1B params)</text>
+  <text x="250" y="199" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">fine-tune 224²→518² for dense tasks</text>
+  <!-- Projection head note -->
+  <rect x="16" y="214" width="308" height="36" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="228" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">projection head: MLP(d→2048→K=65536) → L2-norm → weight-norm FC</text>
+  <text x="170" y="243" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">teacher EMA: θ_t ← τθ_t + (1−τ)θ_s   τ annealed 0.996→1.0</text>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'Loss function, EMA, and results across tasks',
+        body: `<p>The DINO cross-entropy loss for a pair of views (x, x'), summed over all multi-crop combinations:</p>
+<div class="math-block">L = −Σ_{v∈V_local∪V_global} p_t(x)^T · log p_s(v)
+
+p_s(v) = softmax( g_θs(v) / τ_s )
+p_t(x) = softmax( (g_θt(x) − c) / τ_t )</div>
+<p>Only the student receives gradients. The teacher is updated by EMA: θ_t ← τ·θ_t + (1−τ)·θ_s. The DINOv2 total loss adds the iBOT patch-level term and the KoLeo entropy term:</p>
+<div class="math-block">L_DINOv2 = L_DINO + λ_1·L_iBOT + λ_2·L_KoLeo
+
+L_KoLeo = −(1/n) Σᵢ log d_nn(z_i / ‖z_i‖)</div>
+<p>where d_nn is the distance to the nearest neighbour in the batch. This is the Kozachenko–Leonenko estimator of differential entropy — maximising it spreads features uniformly on the hypersphere, preventing cluster degeneracy in the learned space. The combination of all three losses trains a backbone that transfers to image classification, semantic segmentation, depth estimation, and instance retrieval without task-specific fine-tuning.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">results: DINO v1 → DINOv2</text>
+  <!-- Results table -->
+  <rect x="16" y="22" width="308" height="134" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <!-- Header row -->
+  <line x1="16" y1="42" x2="324" y2="42" stroke="#0a0a0a" stroke-width="0.7" opacity="0.4"/>
+  <text x="100" y="36" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">model</text>
+  <text x="194" y="36" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">IN-1k linear</text>
+  <text x="268" y="36" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">k-NN (no FT)</text>
+  <!-- Rows -->
+  <text x="30" y="59" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">DINO ViT-S/16</text>
+  <text x="194" y="59" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">77.0%</text>
+  <text x="268" y="59" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">74.5%</text>
+  <text x="30" y="75" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">DINO ViT-B/16</text>
+  <text x="194" y="75" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">80.1%</text>
+  <text x="268" y="75" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">77.3%</text>
+  <text x="30" y="91" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">DINO ViT-B/8</text>
+  <text x="194" y="91" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">80.1%</text>
+  <text x="268" y="91" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">78.3%</text>
+  <line x1="16" y1="97" x2="324" y2="97" stroke="#0a0a0a" stroke-width="0.7" opacity="0.3"/>
+  <text x="30" y="113" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">DINOv2 ViT-B/14</text>
+  <text x="194" y="113" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">84.5%</text>
+  <text x="268" y="113" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">83.0%</text>
+  <text x="30" y="129" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">DINOv2 ViT-L/14</text>
+  <text x="194" y="129" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">86.3%</text>
+  <text x="268" y="129" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">85.5%</text>
+  <text x="30" y="145" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">DINOv2 ViT-g/14</text>
+  <text x="194" y="145" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">86.5%</text>
+  <text x="268" y="145" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">86.3%</text>
+  <!-- Dense tasks box -->
+  <rect x="16" y="166" width="308" height="82" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#f8f8f6"/>
+  <text x="170" y="182" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">DINOv2 dense task transfer (frozen backbone)</text>
+  <line x1="16" y1="188" x2="324" y2="188" stroke="#0a0a0a" stroke-width="0.5" opacity="0.3"/>
+  <text x="30" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">ADE20K segmentation (linear)</text>
+  <text x="310" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="end">53.1 mIoU</text>
+  <text x="30" y="216" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">NYU-Depth v2 (linear depth)</text>
+  <text x="310" y="216" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="end">competitive w/ supervised</text>
+  <text x="30" y="230" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">Instance retrieval (Oxford/Paris)</text>
+  <text x="310" y="230" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="end">+8% vs v1 (KoLeo effect)</text>
+  <text x="30" y="244" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa">all results: frozen ViT-g/14 backbone, no task-specific fine-tuning</text>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
