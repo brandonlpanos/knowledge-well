@@ -918,6 +918,543 @@ Attention(Q,K,V) = softmax(QKᵀ/√d_k)V</div>
     ]
   },
 
+  // ── SIGLIP ─────────────────────────────────────────────────────────────────
+  {
+    id: 'siglip',
+    name: 'SigLIP',
+    fullName: 'Sigmoid Loss for Language-Image Pre-Training',
+    tag: 'Multimodal Learning',
+    tagline: 'Replace the softmax with a per-pair sigmoid — no global normalization needed',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- axes -->
+      <line x1="10" y1="58" x2="62" y2="58" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <line x1="10" y1="10" x2="10" y2="58" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <!-- sigmoid S-curve -->
+      <path d="M10,56 C18,56 22,52 28,45 S40,22 46,17 S56,12 62,11" stroke="currentColor" stroke-width="1.8" fill="none"/>
+      <!-- decision boundary at 0.5 -->
+      <line x1="10" y1="34" x2="62" y2="34" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.35"/>
+      <!-- matched pair (y=+1, high sim) -->
+      <circle cx="54" cy="13" r="3.5" fill="currentColor" opacity="0.85"/>
+      <text x="58" y="12" font-family="monospace" font-size="5" fill="currentColor" opacity="0.7">+1</text>
+      <!-- unmatched pair (y=-1, low sim) -->
+      <circle cx="18" cy="55" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.5"/>
+      <text x="22" y="54" font-family="monospace" font-size="5" fill="currentColor" opacity="0.5">-1</text>
+      <!-- label -->
+      <text x="36" y="70" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">σ(t·sim + b)</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Swap the leaderboard for a yes/no question',
+        body: `<p>CLIP's softmax loss asks: <em>"Given this image, which of the N texts in the batch is the right match?"</em> That framing demands a global view — the model must see all N candidates simultaneously to compute the softmax denominator. Larger batch → more negatives → better signal. But it also means training is sensitive to batch size, and small batches give weak gradients.</p>
+<p>SigLIP reframes the problem: <em>"Does this specific image match this specific text — yes or no?"</em> Each of the N² pairs in a batch is independently evaluated as a binary classification. Matched pairs (y = +1) are pushed toward probability 1; unmatched pairs (y = −1) toward probability 0. No comparison across pairs. No normalization.</p>
+<p>The payoff: SigLIP significantly outperforms CLIP at small batch sizes (4k–8k) where CLIP's softmax is starved of negatives. Both converge by ~32k. The model also trains more stably on distributed hardware because each device can compute its chunk of the loss without waiting for a global AllGather.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">softmax (CLIP) vs sigmoid (SigLIP)</text>
+  <!-- LEFT: CLIP softmax -->
+  <rect x="16" y="24" width="142" height="110" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" opacity="0.6"/>
+  <text x="87" y="38" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">CLIP — softmax</text>
+  <!-- N×N visible to softmax -->
+  <text x="32" y="54" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">image</text>
+  <rect x="28" y="58" width="22" height="14" rx="1" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="39" y="69" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a" text-anchor="middle">I₁</text>
+  <text x="60" y="54" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">all texts</text>
+  <rect x="56" y="58" width="16" height="14" rx="1" fill="#0a0a0a" opacity="0.75"/>
+  <rect x="74" y="58" width="16" height="14" rx="1" fill="#0a0a0a" opacity="0.08"/>
+  <rect x="92" y="58" width="16" height="14" rx="1" fill="#0a0a0a" opacity="0.06"/>
+  <rect x="110" y="58" width="16" height="14" rx="1" fill="#0a0a0a" opacity="0.05"/>
+  <path d="M87 74 L87 84" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgl)"/>
+  <rect x="54" y="86" width="66" height="18" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="87" y="99" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">softmax over N</text>
+  <text x="87" y="120" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">needs full batch</text>
+  <text x="87" y="130" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">to normalize</text>
+  <!-- RIGHT: SigLIP sigmoid -->
+  <rect x="182" y="24" width="142" height="110" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="253" y="38" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">SigLIP — sigmoid</text>
+  <!-- pairs evaluated independently -->
+  <rect x="192" y="50" width="52" height="14" rx="1" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="218" y="61" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">(I₁, T₁)  y=+1</text>
+  <rect x="192" y="67" width="52" height="14" rx="1" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="218" y="78" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">(I₁, T₂)  y=−1</text>
+  <rect x="192" y="84" width="52" height="14" rx="1" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="218" y="95" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">(I₁, T₃)  y=−1</text>
+  <text x="218" y="109" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">⋮</text>
+  <path d="M250 62 L270 62" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgl)"/>
+  <path d="M250 74 L270 74" stroke="#0a0a0a" stroke-width="0.8" opacity="0.5" marker-end="url(#sgl)"/>
+  <path d="M250 91 L270 91" stroke="#0a0a0a" stroke-width="0.8" opacity="0.5" marker-end="url(#sgl)"/>
+  <text x="275" y="65" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">σ → 1</text>
+  <text x="275" y="77" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">σ → 0</text>
+  <text x="275" y="94" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">σ → 0</text>
+  <text x="253" y="126" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">each pair independent</text>
+  <text x="253" y="130" font-family="'JetBrains Mono',monospace" font-size="1" fill="#555" text-anchor="middle"> </text>
+  <!-- Batch size comparison -->
+  <rect x="16" y="148" width="308" height="96" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="170" y="164" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">zero-shot ImageNet accuracy vs batch size</text>
+  <!-- axes -->
+  <line x1="36" y1="228" x2="308" y2="228" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="36" y1="172" x2="36" y2="228" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="36" y="243" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">4k</text>
+  <text x="100" y="243" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">8k</text>
+  <text x="164" y="243" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">16k</text>
+  <text x="228" y="243" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">32k</text>
+  <text x="295" y="243" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">256k</text>
+  <!-- SigLIP line (solid, higher at small batches) -->
+  <path d="M36,222 C70,210 100,195 164,185 S228,180 295,179" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <!-- CLIP line (dashed, lower at small batches) -->
+  <path d="M36,226 C70,222 100,216 164,190 S228,181 295,180" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="5 3" fill="none"/>
+  <text x="300" y="177" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a">SigLIP</text>
+  <text x="300" y="188" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">CLIP</text>
+  <defs>
+    <marker id="sgl" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Core Mechanism',
+        title: 'Binary CE per pair, with a negative-biased prior',
+        body: `<p>For a batch of N image-text pairs, SigLIP constructs all N² combinations and assigns label y_ij = +1 if i = j (matched pair) and y_ij = −1 otherwise. The loss is:</p>
+<div class="math-block">L = −(1/N²) Σᵢⱼ log σ(y_ij · (t · x̂_i · ẑ_j + b))</div>
+<p>where σ is sigmoid, t is a learned temperature, b is a learned bias, and x̂, ẑ are L2-normalized image and text embeddings. The sigmoid maps any real value to (0,1), acting as a probability — no denominator, no normalization across the batch.</p>
+<p>The <strong>bias term b</strong> is initialized large and negative (e.g. −10). This gives the model a correct starting prior: out of N² pairs, N²−N are negative. Without b, the sigmoid starts near 0.5 for all pairs — a wildly wrong assumption. With b ≈ −10, initial probability of a match is σ(−10) ≈ 0.00005, which is far closer to the true ~1/N prior.</p>
+<p>The temperature t is initialized to ~10 (the inverse of CLIP's 0.07). Together, t and b are learned end-to-end and adapt as the representations sharpen during training.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">per-pair sigmoid loss computation</text>
+  <!-- Single pair diagram -->
+  <rect x="16" y="26" width="42" height="26" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="37" y="43" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">x̂_i</text>
+  <rect x="16" y="62" width="42" height="26" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="37" y="79" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">ẑ_j</text>
+  <path d="M58 39 L76 55" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#sgm)"/>
+  <path d="M58 75 L76 62" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#sgm)"/>
+  <rect x="78" y="46" width="50" height="24" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="103" y="61" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">x̂·ẑ</text>
+  <path d="M128 58 L144 58" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#sgm)"/>
+  <rect x="146" y="46" width="62" height="24" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="177" y="59" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">t · x̂·ẑ + b</text>
+  <path d="M208 58 L224 58" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#sgm)"/>
+  <rect x="226" y="40" width="42" height="36" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="247" y="62" font-family="'JetBrains Mono',monospace" font-size="14" fill="#0a0a0a" text-anchor="middle">σ</text>
+  <path d="M268 58 L284 58" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#sgm)"/>
+  <text x="294" y="55" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">p̂_ij</text>
+  <text x="294" y="65" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">∈(0,1)</text>
+  <!-- y label -->
+  <text x="16" y="106" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">y_ij = +1 if matched,  −1 if not</text>
+  <text x="16" y="120" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#555">loss = −log σ(y_ij · (t · x̂_i·ẑ_j + b))</text>
+  <!-- Bias init box -->
+  <rect x="16" y="136" width="148" height="58" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" fill="#eeeeea"/>
+  <text x="90" y="152" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">bias b init ≈ −10</text>
+  <text x="90" y="166" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">σ(−10) ≈ 0.00005</text>
+  <text x="90" y="180" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">≈ true prior 1/N</text>
+  <text x="90" y="186" font-family="'JetBrains Mono',monospace" font-size="1" fill="#555" text-anchor="middle"> </text>
+  <!-- Temperature init box -->
+  <rect x="176" y="136" width="148" height="58" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" fill="#eeeeea"/>
+  <text x="250" y="152" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">temperature t init ≈ 10</text>
+  <text x="250" y="166" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">(cf. CLIP: 1/τ ≈ 14)</text>
+  <text x="250" y="180" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">both t, b are learned</text>
+  <!-- N² pairs note -->
+  <rect x="16" y="204" width="308" height="46" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#f8f8f6"/>
+  <text x="170" y="220" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">batch of N pairs  →  N² evaluations</text>
+  <text x="170" y="234" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">N matched (diagonal)  +  N²−N unmatched (off-diagonal)</text>
+  <text x="170" y="244" font-family="'JetBrains Mono',monospace" font-size="7" fill="#aaa" text-anchor="middle">all independent — no softmax denominator</text>
+  <defs>
+    <marker id="sgm" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Architecture',
+        title: 'Chunked loss across devices — no AllGather needed',
+        body: `<p>CLIP's softmax loss requires gathering <em>all</em> N image and text embeddings onto every device before computing the NxN similarity matrix and normalizing. On a TPU pod this means an expensive AllGather communication step, and memory scales as O(N·d) per device before any matrix multiply.</p>
+<p>Because SigLIP's loss is a sum of independent per-pair terms, the batch can be split into chunks across devices. Device k holds a slice of image embeddings and exchanges text embedding chunks with other devices in a ring. Each exchange computes a partial loss contribution and accumulates it — <strong>no device ever needs the full N embeddings simultaneously</strong>. Memory per device stays O(chunk_size · d).</p>
+<p>The encoder architecture is identical to CLIP: a ViT image encoder and a Transformer text encoder with linear projection heads into a shared L2-normalized embedding space. SigLIP is purely a loss substitution — any CLIP architecture can be trained with the sigmoid objective. In practice the authors use ViT-B/16, ViT-L/16 and the larger <strong>ViT-SO400M</strong> (a 400M-parameter ViT trained with sigmoid loss to reach 82%+ ImageNet zero-shot).</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">distributed loss: chunked ring vs AllGather</text>
+  <!-- CLIP side: AllGather -->
+  <text x="80" y="30" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">CLIP (softmax)</text>
+  <rect x="18" y="38" width="36" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="36" y="53" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">Dev 1</text>
+  <rect x="62" y="38" width="36" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="80" y="53" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">Dev 2</text>
+  <rect x="106" y="38" width="36" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="124" y="53" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">Dev 3</text>
+  <!-- AllGather arrows (all to all) -->
+  <path d="M54 46 L62 46" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgd)"/>
+  <path d="M62 50 L54 50" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgd)"/>
+  <path d="M98 46 L106 46" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgd)"/>
+  <path d="M106 50 L98 50" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgd)"/>
+  <rect x="30" y="72" width="112" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="86" y="87" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">full N embeds on every device</text>
+  <path d="M36 94 L36 106" stroke="#0a0a0a" stroke-width="1" opacity="0.5" marker-end="url(#sgd)"/>
+  <path d="M124 94 L124 106" stroke="#0a0a0a" stroke-width="1" opacity="0.5" marker-end="url(#sgd)"/>
+  <rect x="18" y="108" width="130" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="83" y="122" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">N×N matrix → softmax norm</text>
+  <text x="80" y="145" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">O(N) memory per device</text>
+  <text x="80" y="156" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">expensive AllGather</text>
+  <!-- SigLIP side: ring chunked -->
+  <text x="260" y="30" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">SigLIP (sigmoid)</text>
+  <rect x="192" y="38" width="36" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="210" y="53" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">Dev 1</text>
+  <rect x="236" y="38" width="36" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="254" y="53" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">Dev 2</text>
+  <rect x="280" y="38" width="36" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="298" y="53" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">Dev 3</text>
+  <!-- ring arrows -->
+  <path d="M228 44 L236 44" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#sgd)"/>
+  <path d="M272 44 L280 44" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#sgd)"/>
+  <path d="M298 60 C 298 68 210 68 210 60" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.5" marker-end="url(#sgd)"/>
+  <text x="254" y="76" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">chunk ring</text>
+  <!-- local loss per chunk -->
+  <rect x="192" y="86" width="130" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="257" y="100" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">local sigmoid loss per chunk</text>
+  <path d="M257 106 L257 118" stroke="#0a0a0a" stroke-width="1" marker-end="url(#sgd)"/>
+  <rect x="204" y="120" width="106" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="257" y="134" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">accumulate → sum</text>
+  <text x="260" y="156" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">O(chunk) memory</text>
+  <text x="260" y="167" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">no full-batch gather</text>
+  <!-- divider -->
+  <line x1="170" y1="28" x2="170" y2="170" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="4 3" opacity="0.3"/>
+  <!-- Encoder note -->
+  <rect x="16" y="182" width="308" height="68" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="198" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">architecture is identical to CLIP</text>
+  <text x="170" y="212" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">ViT image encoder  ·  Transformer text encoder  ·  linear projections</text>
+  <text x="170" y="226" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">SigLIP is a loss substitution — any CLIP backbone works</text>
+  <text x="170" y="240" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">ViT-SO400M  →  82%+ ImageNet zero-shot</text>
+  <defs>
+    <marker id="sgd" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'Loss derivation, sigmoid vs softmax, and scaling',
+        body: `<p>The full SigLIP objective over a batch of N pairs, with all N² label assignments y_ij ∈ {−1, +1}:</p>
+<div class="math-block">L = −(1/N²) Σᵢ Σⱼ log σ(y_ij · (t · x̂_i · ẑ_j + b))
+
+y_ij = +1  if i = j   (matched)
+y_ij = −1  if i ≠ j  (unmatched)</div>
+<p>This is equivalent to binary cross-entropy over N² independent Bernoulli variables. Compared to CLIP's softmax InfoNCE — which is a log-sum-exp over all j for each anchor i — the sigmoid formulation has <strong>no coupling between pairs</strong>. The gradient for pair (i,j) is independent of every other pair's similarity score.</p>
+<p>The bias b absorbs the imbalance between positive and negative examples. At convergence, b settles to approximately −log(N−1), the log-odds of the true class prior. This is a form of <strong>prior calibration</strong> learned end-to-end.</p>
+<p><strong>SigLiT</strong> (Sigmoid Loss with locked image Tower) freezes a pre-trained ViT and trains only the text encoder and projection with the sigmoid loss — achieving 84.5% ImageNet zero-shot accuracy in 2 days on 4 TPU v4 chips. Training a full SigLIP model from scratch with 32 TPU v4 chips for 5 days reaches 73.4%. Batch sizes beyond 32k yield diminishing returns; the sigmoid loss with small batches is much stronger than CLIP's softmax at equal batch size.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">sigmoid vs softmax gradient structure</text>
+  <!-- Sigmoid loss grad box -->
+  <rect x="16" y="24" width="146" height="90" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="89" y="40" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">SigLIP gradient</text>
+  <text x="89" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">∂L/∂(x̂_i·ẑ_j) = y_ij·t·(σ − 1_[y=+1])</text>
+  <text x="89" y="72" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">depends only on</text>
+  <text x="89" y="84" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">the pair (i, j)</text>
+  <text x="89" y="107" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">no cross-pair coupling</text>
+  <!-- Softmax loss grad box -->
+  <rect x="178" y="24" width="146" height="90" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" opacity="0.7"/>
+  <text x="251" y="40" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">CLIP gradient</text>
+  <text x="251" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">∂L/∂(x̂_i·ẑ_j) = t·(p_ij − 1_[y=+1])</text>
+  <text x="251" y="72" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">p_ij = softmax over all j</text>
+  <text x="251" y="84" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">requires full batch</text>
+  <text x="251" y="107" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa" text-anchor="middle">all-pair normalization</text>
+  <!-- Bias convergence -->
+  <rect x="16" y="122" width="308" height="44" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#f8f8f6"/>
+  <text x="170" y="138" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">bias convergence:  b* ≈ −log(N − 1)</text>
+  <text x="170" y="153" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">encodes class prior — model learns that N²−N pairs are negative</text>
+  <!-- Results table -->
+  <rect x="16" y="176" width="308" height="76" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="192" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">key results (ImageNet zero-shot top-1)</text>
+  <line x1="16" y1="198" x2="324" y2="198" stroke="#0a0a0a" stroke-width="0.5" opacity="0.4"/>
+  <text x="30" y="211" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">SigLiT  (frozen ViT, text enc. only)</text>
+  <text x="290" y="211" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">84.5%</text>
+  <text x="30" y="224" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">SigLIP from scratch  (32 TPUv4, 5 days)</text>
+  <text x="290" y="224" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">73.4%</text>
+  <text x="30" y="237" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">ViT-SO400M  (SigLIP trained, larger model)</text>
+  <text x="290" y="237" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">82%+</text>
+  <text x="30" y="247" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa">batch size &gt; 32k yields diminishing returns for both methods</text>
+</svg>`
+      }
+    ]
+  },
+
+  // ── BYOL ───────────────────────────────────────────────────────────────────
+  {
+    id: 'byol',
+    name: 'BYOL',
+    fullName: 'Bootstrap Your Own Latent',
+    tag: 'Self-Supervised Learning',
+    tagline: 'A network that teaches itself — no negative pairs required',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Online network: encoder + projector + predictor (solid) -->
+      <rect x="4" y="16" width="22" height="36" rx="2" stroke="currentColor" stroke-width="1.5"/>
+      <text x="15" y="27" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">enc</text>
+      <line x1="6" y1="31" x2="24" y2="31" stroke="currentColor" stroke-width="0.7" opacity="0.35"/>
+      <text x="15" y="39" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">proj</text>
+      <line x1="6" y1="43" x2="24" y2="43" stroke="currentColor" stroke-width="0.7" opacity="0.35"/>
+      <text x="15" y="50" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">pred</text>
+      <text x="15" y="12" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.6">θ online</text>
+      <!-- Target network: encoder + projector only (dashed) -->
+      <rect x="46" y="16" width="22" height="26" rx="2" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/>
+      <text x="57" y="27" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle" opacity="0.7">enc</text>
+      <line x1="48" y1="31" x2="66" y2="31" stroke="currentColor" stroke-width="0.7" opacity="0.25"/>
+      <text x="57" y="39" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle" opacity="0.7">proj</text>
+      <text x="57" y="12" font-family="monospace" font-size="5" fill="currentColor" text-anchor="middle" opacity="0.5">ξ target</text>
+      <!-- EMA arrow from online to target -->
+      <path d="M26 24 C 36 14 36 14 46 24" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" fill="none" marker-end="url(#byl)" opacity="0.55"/>
+      <text x="36" y="13" font-family="monospace" font-size="4.5" fill="currentColor" text-anchor="middle" opacity="0.6">EMA</text>
+      <!-- Prediction arrow: from pred output toward target proj output -->
+      <path d="M26 52 L57 44" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#byl)"/>
+      <!-- no negatives label -->
+      <text x="36" y="70" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">no negatives</text>
+      <defs>
+        <marker id="byl" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+          <path d="M0,0 L0,5 L4,2.5 z" fill="currentColor"/>
+        </marker>
+      </defs>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'A student that bootstraps from its own slow shadow',
+        body: `<p>Every contrastive method before BYOL shared the same assumption: to learn what something <em>is</em>, you must also show the model what it <em>is not</em>. SimCLR, MoCo, CLIP — all require negative pairs. The question DeepMind asked in 2020: what if you didn't?</p>
+<p>BYOL keeps two copies of the same network — an <strong>online</strong> network (actively trained) and a <strong>target</strong> network (a slow exponential moving average of the online weights). Given two augmented views of the same image, the online network is trained to <strong>predict what the target network would output</strong> for the other view. The target never receives gradients — it simply drifts slowly toward the online network.</p>
+<p>The result is a self-bootstrapping loop: the online network chases a target that is itself a lagged version of the online network. No negatives, no large batches needed. It achieves higher linear-probe accuracy on ImageNet than SimCLR with far less sensitivity to augmentation choices.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">contrastive (SimCLR) vs self-bootstrapping (BYOL)</text>
+  <!-- SimCLR: needs negatives from different images -->
+  <rect x="16" y="24" width="140" height="108" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" opacity="0.6"/>
+  <text x="86" y="38" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">SimCLR — needs negatives</text>
+  <!-- anchor image -->
+  <rect x="26" y="48" width="30" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="41" y="63" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">img A</text>
+  <!-- negative images -->
+  <rect x="66" y="48" width="22" height="14" rx="1" fill="#0a0a0a" opacity="0.07" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="77" y="58" font-family="'JetBrains Mono',monospace" font-size="5.5" fill="#888" text-anchor="middle">B</text>
+  <rect x="90" y="48" width="22" height="14" rx="1" fill="#0a0a0a" opacity="0.07" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="101" y="58" font-family="'JetBrains Mono',monospace" font-size="5.5" fill="#888" text-anchor="middle">C</text>
+  <rect x="114" y="48" width="22" height="14" rx="1" fill="#0a0a0a" opacity="0.07" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="125" y="58" font-family="'JetBrains Mono',monospace" font-size="5.5" fill="#888" text-anchor="middle">D…</text>
+  <text x="86" y="83" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">push apart ↔ pull together</text>
+  <text x="86" y="98" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">needs large batch of</text>
+  <text x="86" y="110" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">diverse negatives</text>
+  <text x="86" y="124" font-family="'JetBrains Mono',monospace" font-size="6" fill="#aaa" text-anchor="middle">sensitive to batch size &amp; augmentation</text>
+  <!-- BYOL: only same image, two views -->
+  <rect x="184" y="24" width="140" height="108" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="254" y="38" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">BYOL — no negatives</text>
+  <!-- single image, two views -->
+  <rect x="224" y="48" width="60" height="22" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="254" y="63" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">same image x</text>
+  <path d="M234 70 L220 84" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#byi)"/>
+  <path d="M274 70 L288 84" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#byi)"/>
+  <rect x="198" y="86" width="36" height="16" rx="2" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="216" y="97" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a" text-anchor="middle">view v</text>
+  <rect x="270" y="86" width="36" height="16" rx="2" fill="#f8f8f6" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="288" y="97" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a" text-anchor="middle">view v'</text>
+  <text x="254" y="118" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">online predicts target</text>
+  <text x="254" y="124" font-family="'JetBrains Mono',monospace" font-size="1" fill="#555" text-anchor="middle"> </text>
+  <!-- result comparison -->
+  <rect x="16" y="146" width="308" height="100" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="170" y="162" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">ImageNet linear evaluation — ResNet-50</text>
+  <line x1="16" y1="168" x2="324" y2="168" stroke="#0a0a0a" stroke-width="0.5" opacity="0.4"/>
+  <text x="30" y="182" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#555">SimCLR</text>
+  <text x="300" y="182" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#555" text-anchor="middle">69.3%</text>
+  <text x="30" y="198" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">BYOL</text>
+  <text x="300" y="198" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">74.3%</text>
+  <text x="30" y="214" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">Supervised baseline</text>
+  <text x="300" y="214" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">76.5%</text>
+  <text x="30" y="230" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">BYOL ResNet-50 (4×)</text>
+  <text x="300" y="230" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">78.6%  ≈ supervised</text>
+  <text x="30" y="241" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa">all numbers: top-1 accuracy, linear probe protocol</text>
+  <defs>
+    <marker id="byi" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Core Mechanism',
+        title: 'Online predicts target — asymmetry prevents collapse',
+        body: `<p>BYOL's forward pass: image x is augmented into two views v and v'. View v feeds the <strong>online network</strong> — encoder f_θ, projector g_θ, and a small <strong>predictor MLP q_θ</strong> — producing a prediction ẑ_θ. View v' feeds the <strong>target network</strong> — the same encoder/projector architecture, weights ξ, but <em>no predictor</em> — producing z'_ξ.</p>
+<p>The loss is the MSE between L2-normalized ẑ_θ and z'_ξ, with a <strong>stop-gradient</strong> on the target branch. Gradients update only θ. After each step, target weights are updated by EMA: ξ ← τξ + (1−τ)θ. Views are then swapped and the loss is symmetrized.</p>
+<p>The critical question: why doesn't this collapse to a trivial constant solution? The <strong>predictor q_θ</strong> is the key. Without it the online and target networks are architecturally identical — the shortest path to zero loss is outputting the same constant vector for everything. The predictor breaks this symmetry: a constant target output would be easy to predict, but the predictor would still need to learn to produce it from varying online representations, keeping the gradients informative.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="13" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">BYOL forward pass (one view direction)</text>
+  <!-- Image x -->
+  <rect x="138" y="20" width="64" height="18" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="170" y="33" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">image  x</text>
+  <!-- Two augment arrows -->
+  <path d="M148 38 L100 52" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#bym)"/>
+  <path d="M192 38 L240 52" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#bym)"/>
+  <text x="118" y="50" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">aug t</text>
+  <text x="210" y="50" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">aug t'</text>
+  <!-- ONLINE branch (left) -->
+  <rect x="60" y="54" width="76" height="18" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="98" y="67" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">view  v</text>
+  <path d="M98 72 L98 84" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bym)"/>
+  <rect x="60" y="86" width="76" height="18" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="98" y="99" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">encoder  f_θ</text>
+  <path d="M98 104 L98 116" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bym)"/>
+  <text x="112" y="113" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">y_θ</text>
+  <rect x="60" y="118" width="76" height="18" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="98" y="131" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">projector  g_θ</text>
+  <path d="M98 136 L98 148" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bym)"/>
+  <text x="112" y="145" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">z_θ</text>
+  <rect x="60" y="150" width="76" height="18" rx="2" stroke="#0a0a0a" stroke-width="2" fill="#eeeeea"/>
+  <text x="98" y="163" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">predictor  q_θ</text>
+  <path d="M98 168 L98 180" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bym)"/>
+  <text x="112" y="177" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">ẑ_θ</text>
+  <!-- TARGET branch (right) -->
+  <rect x="204" y="54" width="76" height="18" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="242" y="67" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">view  v'</text>
+  <path d="M242 72 L242 84" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#bym)"/>
+  <rect x="204" y="86" width="76" height="18" rx="2" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="242" y="99" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">encoder  f_ξ</text>
+  <path d="M242 104 L242 116" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#bym)"/>
+  <rect x="204" y="118" width="76" height="18" rx="2" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="242" y="131" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">projector  g_ξ</text>
+  <path d="M242 136 L242 148" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#bym)"/>
+  <text x="256" y="145" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa">z'_ξ</text>
+  <!-- stop-gradient box -->
+  <rect x="210" y="148" width="64" height="16" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="2 2" fill="#f8f8f6"/>
+  <text x="242" y="160" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">stop-grad</text>
+  <!-- Loss -->
+  <path d="M136 183 L160 191" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bym)"/>
+  <path d="M242 164 L220 191" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#bym)"/>
+  <rect x="162" y="193" width="56" height="20" rx="2" stroke="#0a0a0a" stroke-width="2" fill="#eeeeea"/>
+  <text x="190" y="207" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">L</text>
+  <!-- EMA arrow -->
+  <path d="M204 95 C 170 75 136 75 136 95" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.5" fill="none" marker-end="url(#bym)"/>
+  <text x="170" y="72" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">ξ ← τξ + (1−τ)θ</text>
+  <!-- loss label -->
+  <text x="190" y="228" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">‖ẑ_θ − z'_ξ‖²  (L2-norm both)</text>
+  <text x="190" y="241" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">symmetrized: swap v ↔ v', repeat</text>
+  <!-- "online only" label for predictor -->
+  <text x="24" y="160" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a" opacity="0.7">online</text>
+  <text x="24" y="169" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a" opacity="0.7">only ←</text>
+  <defs>
+    <marker id="bym" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Architecture',
+        title: 'Projector, predictor, and EMA schedule',
+        body: `<p>Both encoder branches use the same backbone (ResNet-50 or ViT), producing a 2048-d representation. The <strong>projector</strong> is a 2-layer MLP: Linear(2048→4096) → BatchNorm → ReLU → Linear(4096→256). Both online and target share this projector architecture with separate weights.</p>
+<p>The <strong>predictor</strong> — exclusive to the online branch — is an identical 2-layer MLP: Linear(256→4096) → BatchNorm → ReLU → Linear(4096→256). Its role is architectural asymmetry: since the target has no predictor, the loss landscape is not symmetric between the two branches, making constant-output collapse a local maximum rather than a global minimum.</p>
+<p>The EMA decay τ is not fixed — it is <strong>cosine-annealed</strong> from τ_base = 0.996 to τ_max = 1.0 over training. Early in training τ is lower (faster tracking), so the target adapts quickly before representations stabilize; later τ → 1 and the target becomes nearly frozen, providing more stable training signal. The ablation shows τ ∈ [0.9, 0.999] all yield >68% top-1, confirming robustness.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="13" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">network dimensions and EMA schedule</text>
+  <!-- Online stack with dimensions -->
+  <text x="80" y="28" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Online  (θ)</text>
+  <rect x="30" y="34" width="100" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="80" y="49" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">ResNet-50  encoder</text>
+  <text x="134" y="48" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">→ 2048-d</text>
+  <path d="M80 56 L80 66" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bya)"/>
+  <rect x="30" y="68" width="100" height="34" rx="2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="80" y="82" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">projector  g_θ</text>
+  <text x="80" y="93" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">2048→4096→256</text>
+  <text x="80" y="100" font-family="'JetBrains Mono',monospace" font-size="6" fill="#aaa" text-anchor="middle">BN+ReLU hidden</text>
+  <text x="134" y="82" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">→ 256-d</text>
+  <path d="M80 102 L80 112" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#bya)"/>
+  <rect x="30" y="114" width="100" height="34" rx="2" stroke="#0a0a0a" stroke-width="2" fill="#eeeeea"/>
+  <text x="80" y="128" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">predictor  q_θ</text>
+  <text x="80" y="139" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">256→4096→256</text>
+  <text x="80" y="146" font-family="'JetBrains Mono',monospace" font-size="6" fill="#aaa" text-anchor="middle">BN+ReLU hidden</text>
+  <text x="20" y="132" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a">only</text>
+  <text x="20" y="141" font-family="'JetBrains Mono',monospace" font-size="6" fill="#0a0a0a">here</text>
+  <!-- Target stack -->
+  <text x="260" y="28" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">Target  (ξ)</text>
+  <rect x="210" y="34" width="100" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="260" y="49" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">ResNet-50  encoder</text>
+  <path d="M260 56 L260 66" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#bya)"/>
+  <rect x="210" y="68" width="100" height="34" rx="2" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <text x="260" y="82" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">projector  g_ξ</text>
+  <text x="260" y="93" font-family="'JetBrains Mono',monospace" font-size="6" fill="#aaa" text-anchor="middle">2048→4096→256</text>
+  <text x="260" y="100" font-family="'JetBrains Mono',monospace" font-size="6" fill="#aaa" text-anchor="middle">same arch, diff weights</text>
+  <!-- no predictor placeholder -->
+  <rect x="210" y="114" width="100" height="34" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="2 3" opacity="0.35"/>
+  <text x="260" y="134" font-family="'JetBrains Mono',monospace" font-size="7" fill="#aaa" text-anchor="middle">no predictor</text>
+  <!-- EMA curve -->
+  <rect x="16" y="162" width="308" height="86" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="178" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">EMA schedule: τ cosine-annealed τ_base → 1.0</text>
+  <line x1="36" y1="232" x2="308" y2="232" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="36" y1="190" x2="36" y2="232" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="26" y="194" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">1.0</text>
+  <text x="24" y="234" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">.996</text>
+  <path d="M36,232 C100,231 160,222 308,192" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <text x="175" y="245" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">training steps</text>
+  <text x="314" y="194" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">τ→1</text>
+  <text x="50" y="228" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">fast early</text>
+  <text x="240" y="202" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888">slow late</text>
+  <defs>
+    <marker id="bya" markerWidth="6" markerHeight="6" refX="4" refY="2" orient="auto">
+      <path d="M0,0 L0,4 L5,2 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'Loss, collapse analysis, and ablations',
+        body: `<p>Let ẑ_θ = q_θ(g_θ(f_θ(v))) / ‖q_θ(g_θ(f_θ(v)))‖ and z'_ξ = sg[g_ξ(f_ξ(v'))] / ‖g_ξ(f_ξ(v'))‖. The symmetrized BYOL loss is:</p>
+<div class="math-block">L_BYOL = ‖ẑ_θ − z'_ξ‖² + ‖ẑ'_θ − z_ξ‖²
+        = 2 − 2 · ẑ_θ·z'_ξ  +  2 − 2 · ẑ'_θ·z_ξ
+        = 4 − 2(ẑ_θ·z'_ξ + ẑ'_θ·z_ξ)</div>
+<p>Minimizing this is equivalent to maximizing the cosine similarity between the two normalized predictions — it is a pure alignment objective with no uniformity term. This is exactly why negatives <em>would</em> normally be needed: without them, trivially setting all outputs to the same unit vector achieves loss = 0. BYOL escapes this because <strong>stop-gradient breaks the symmetry</strong>: the collapsed solution is not a fixed point of the optimization when only θ receives gradients and ξ follows via EMA.</p>
+<p>The critical ablation: removing either stop-gradient or the predictor causes collapse. Without stop-grad, both networks receive gradients and the trivial solution is reachable. Without the predictor, the architecture is symmetric and collapse is again a stable fixed point. Both together create a regime where the online network must constantly solve a non-trivial prediction problem.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">ablation: what causes collapse?</text>
+  <!-- 2x2 ablation table -->
+  <text x="170" y="32" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">stop-gradient ×  predictor</text>
+  <!-- table headers -->
+  <text x="170" y="50" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">predictor</text>
+  <text x="80" y="70" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">stop-grad</text>
+  <line x1="130" y1="40" x2="130" y2="136" stroke="#0a0a0a" stroke-width="0.7" opacity="0.35"/>
+  <line x1="16" y1="76" x2="324" y2="76" stroke="#0a0a0a" stroke-width="0.7" opacity="0.35"/>
+  <text x="184" y="60" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">✓ yes</text>
+  <text x="272" y="60" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">✗ no</text>
+  <text x="80" y="100" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">✓ yes</text>
+  <text x="80" y="120" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">✗ no</text>
+  <!-- cells -->
+  <rect x="138" y="80" width="86" height="32" rx="2" fill="#0a0a0a" opacity="0.08" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="181" y="96" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">74.3%  ✓ BYOL</text>
+  <text x="181" y="106" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#555" text-anchor="middle">works</text>
+  <rect x="226" y="80" width="86" height="32" rx="2" stroke="#0a0a0a" stroke-width="0.8" opacity="0.5"/>
+  <text x="269" y="96" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">collapse</text>
+  <text x="269" y="106" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa" text-anchor="middle">~0%</text>
+  <rect x="138" y="114" width="86" height="32" rx="2" stroke="#0a0a0a" stroke-width="0.8" opacity="0.5"/>
+  <text x="181" y="130" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">degraded</text>
+  <text x="181" y="140" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa" text-anchor="middle">~55–63%</text>
+  <rect x="226" y="114" width="86" height="32" rx="2" stroke="#0a0a0a" stroke-width="0.8" opacity="0.5"/>
+  <text x="269" y="130" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">collapse</text>
+  <text x="269" y="140" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#aaa" text-anchor="middle">~0%</text>
+  <!-- Collapse intuition -->
+  <rect x="16" y="152" width="308" height="42" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="168" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">collapse = both networks output same constant vector</text>
+  <text x="170" y="182" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555" text-anchor="middle">stop-grad + predictor break this fixed point — only path to L=0 requires learning</text>
+  <!-- Loss formula box -->
+  <rect x="16" y="204" width="308" height="46" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#f8f8f6"/>
+  <text x="26" y="220" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">L = 4 − 2(ẑ_θ · z'_ξ  +  ẑ'_θ · z_ξ)</text>
+  <text x="26" y="235" font-family="'JetBrains Mono',monospace" font-size="7" fill="#555">pure alignment — maximizes cosine sim between normalized predictions</text>
+  <text x="26" y="246" font-family="'JetBrains Mono',monospace" font-size="7" fill="#aaa">no uniformity term — negatives would enforce spreading; EMA does it implicitly</text>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
