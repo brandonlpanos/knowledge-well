@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Well</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ── LANDING ─────────────────────────────────────────────── -->
+  <div id="landing">
+    <header class="landing-header">
+      <div class="site-title">Knowledge<br>Well</div>
+      <div class="site-meta">
+        Brandon Panos<br>
+        FHNW · I4DS<br>
+        Brugg, Switzerland<br>
+        Updated 2025
+      </div>
+    </header>
+
+    <div class="landing-intro">
+      <p class="intro-text">A living notebook — from intuition to full technical depth.</p>
+      <span class="method-count" id="method-count"></span>
+    </div>
+
+    <div class="method-grid" id="method-grid"></div>
+
+    <footer class="landing-footer">
+      <span>Click any concept to explore depth layers</span>
+      <span>Scroll to go deeper ↓</span>
+    </footer>
+  </div>
+
+  <!-- ── DETAIL ──────────────────────────────────────────────── -->
+  <div id="detail">
+    <nav class="detail-nav">
+      <button class="back-btn" id="back-btn">← All Concepts</button>
+      <div class="depth-dots" id="depth-dots"></div>
+    </nav>
+
+    <div class="detail-body">
+      <div class="sticky-panel">
+        <div class="panel-concept-name" id="panel-name"></div>
+        <div class="panel-layer-label" id="panel-label"></div>
+        <div class="img-container" id="img-container"></div>
+      </div>
+      <div class="scroll-panel" id="scroll-panel"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
