@@ -1718,6 +1718,285 @@ L_KoLeo = −(1/n) Σᵢ log d_nn(z_i / ‖z_i‖)</div>
     ]
   },
 
+  // ── COLPALI ────────────────────────────────────────────────────────────────
+  {
+    id: 'colpali',
+    name: 'ColPali',
+    fullName: 'Contextualized Late Interaction over PaliGemma',
+    tag: 'Document Retrieval',
+    tagline: 'Retrieve documents by seeing them, not parsing them.',
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="13" y="7" width="33" height="44" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <polyline points="38,7 46,7 46,15 38,7" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <line x1="13" y1="21" x2="46" y2="21" stroke="#0a0a0a" stroke-width="0.7" opacity="0.35"/>
+  <line x1="13" y1="33" x2="46" y2="33" stroke="#0a0a0a" stroke-width="0.7" opacity="0.35"/>
+  <line x1="24" y1="7" x2="24" y2="51" stroke="#0a0a0a" stroke-width="0.7" opacity="0.35"/>
+  <line x1="35" y1="7" x2="35" y2="51" stroke="#0a0a0a" stroke-width="0.7" opacity="0.35"/>
+  <rect x="24" y="21" width="11" height="12" fill="#0a0a0a" opacity="0.18"/>
+  <circle cx="54" cy="55" r="9" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <line x1="60" y1="61" x2="66" y2="67" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/>
+  <line x1="35" y1="33" x2="46" y2="47" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="2 2" opacity="0.55"/>
+</svg>`,
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Retrieve documents by seeing them, not parsing them',
+        body: `<p>Traditional document retrieval is a brittle chain: PDF → OCR → layout detection → text chunking → captioning → embedding → index. Each step discards visual information, and documents communicate through their visuals — tables, charts, fonts, spatial layout.</p>
+<p>ColPali flips this entirely. A document page is an <em>image</em>. Feed it directly to a vision-language model, which produces a bag of <strong>patch embeddings</strong> — one vector per image tile. At query time, encode the question as text tokens and score it against every page using <strong>late interaction</strong>: each query token finds its best-matching patch, and the scores are summed. The highest-scoring page wins.</p>
+<p>No OCR. No layout parser. No caption generator. One model, end-to-end, and it outperforms the entire classical pipeline on every visual domain tested.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="18" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle" letter-spacing="0.1em">TRADITIONAL vs COLPALI PIPELINE</text>
+  <text x="70" y="36" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">TRADITIONAL</text>
+  <rect x="20" y="44" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="70" y="58" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">PDF Parse</text>
+  <line x1="70" y1="64" x2="70" y2="74" stroke="#888" stroke-width="1"/>
+  <rect x="20" y="74" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="70" y="88" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">OCR + Layout</text>
+  <line x1="70" y1="94" x2="70" y2="104" stroke="#888" stroke-width="1"/>
+  <rect x="20" y="104" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="70" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Captioning</text>
+  <line x1="70" y1="124" x2="70" y2="134" stroke="#888" stroke-width="1"/>
+  <rect x="20" y="134" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="70" y="148" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Text Embed</text>
+  <line x1="70" y1="154" x2="70" y2="164" stroke="#888" stroke-width="1"/>
+  <rect x="20" y="164" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="70" y="178" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Vector Index</text>
+  <text x="70" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">7.22 s / page</text>
+  <text x="70" y="214" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">nDCG@5: 67.0</text>
+  <line x1="170" y1="28" x2="170" y2="230" stroke="#ddd" stroke-width="1"/>
+  <text x="255" y="36" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">COLPALI</text>
+  <rect x="205" y="44" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="255" y="58" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Page → Image</text>
+  <line x1="255" y1="64" x2="255" y2="74" stroke="#888" stroke-width="1"/>
+  <rect x="205" y="74" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a"/>
+  <text x="255" y="88" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#f8f8f6" text-anchor="middle">PaliGemma VLM</text>
+  <line x1="255" y1="94" x2="255" y2="104" stroke="#888" stroke-width="1"/>
+  <rect x="205" y="104" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="255" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">1024 Patch Vecs</text>
+  <line x1="255" y1="124" x2="255" y2="134" stroke="#888" stroke-width="1"/>
+  <rect x="205" y="134" width="100" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="255" y="148" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Late Interaction</text>
+  <text x="255" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">0.39 s / page</text>
+  <text x="255" y="214" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">nDCG@5: 81.3</text>
+</svg>`
+      },
+      {
+        level: 'Mechanism',
+        title: 'Every query token hunts its best-matching patch',
+        body: `<p>ColBERT-style <em>late interaction</em> keeps query and document representations fully separate until scoring time. The document page encodes into N=1024 patch vectors; the query encodes into M token vectors. At retrieval, for each query token find the patch that matches it best (maximum dot product), then sum across all query tokens:</p>
+<div class="math-block">score(q, d) = Σᵢ₌₁ᴹ  max_{j=1…N}  (qᵢ · dⱼ)</div>
+<p>This is <strong>MaxSim</strong>. It is fundamentally different from single-vector retrieval, which collapses the whole document to one number. With MaxSim, a token about "revenue" can light up the table region of the page, while a token about "trend" independently lights up a chart — the final score accumulates evidence from wherever it lands.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="cpa-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle" letter-spacing="0.08em">MAXSIM LATE INTERACTION</text>
+  <text x="52" y="34" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">QUERY TOKENS</text>
+  <rect x="12" y="42" width="80" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <text x="52" y="56" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">"What"</text>
+  <rect x="12" y="68" width="80" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <text x="52" y="82" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">"is"</text>
+  <rect x="12" y="94" width="80" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <text x="52" y="108" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">"the"</text>
+  <rect x="12" y="120" width="80" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a"/>
+  <text x="52" y="134" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#f8f8f6" text-anchor="middle">"revenue"</text>
+  <rect x="12" y="146" width="80" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <text x="52" y="160" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">"?"</text>
+  <line x1="92" y1="130" x2="186" y2="103" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#cpa-arr)"/>
+  <line x1="92" y1="52" x2="186" y2="52" stroke="#888" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5"/>
+  <line x1="92" y1="78" x2="186" y2="72" stroke="#888" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5"/>
+  <line x1="92" y1="104" x2="186" y2="88" stroke="#888" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5"/>
+  <line x1="92" y1="156" x2="186" y2="152" stroke="#888" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5"/>
+  <text x="258" y="34" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">DOC PATCHES (N=1024)</text>
+  <!-- 6×8 patch grid -->
+  <rect x="190" y="42" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="42" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="42" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="256" y="42" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="278" y="42" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="300" y="42" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="58" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="58" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="58" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="256" y="58" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="278" y="58" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="300" y="58" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="74" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="74" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="74" width="20" height="14" rx="1" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="256" y="74" width="20" height="14" rx="1" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="278" y="74" width="20" height="14" rx="1" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="300" y="74" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="90" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="90" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="90" width="20" height="14" rx="1" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="256" y="90" width="20" height="14" rx="1" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="278" y="90" width="20" height="14" rx="1" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="300" y="90" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="106" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="106" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="106" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="256" y="106" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="278" y="106" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="300" y="106" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="122" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="122" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="122" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="256" y="122" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="278" y="122" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="300" y="122" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="138" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="138" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="138" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="256" y="138" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="278" y="138" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="300" y="138" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="190" y="154" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="212" y="154" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="234" y="154" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="256" y="154" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="278" y="154" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <rect x="300" y="154" width="20" height="14" rx="1" stroke="#ccc" stroke-width="0.7" fill="none"/>
+  <text x="258" y="183" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">↑ max-sim patches</text>
+  <text x="258" y="193" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">for "revenue"</text>
+  <rect x="10" y="204" width="320" height="44" rx="3" stroke="#0a0a0a" stroke-width="1" fill="#f8f8f6"/>
+  <text x="170" y="222" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">score(q, d) = Σᵢ max_j  qᵢ · dⱼ</text>
+  <line x1="20" y1="228" x2="320" y2="228" stroke="#ddd" stroke-width="0.7"/>
+  <text x="170" y="241" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">sum over M query tokens, each finding its best-matching patch</text>
+</svg>`
+      },
+      {
+        level: 'Architecture',
+        title: 'PaliGemma: SigLIP vision encoder + Gemma language model',
+        body: `<p>ColPali is built on <strong>PaliGemma-3B</strong> — a vision-language model that pairs <em>SigLIP-So400m/14</em> (the vision encoder) with <em>Gemma-2B</em> (a language model). The document page enters as an image; the query enters as text. Both emerge as vectors in the same D=128 embedding space via a shared linear projection head.</p>
+<p>A 448×448 page image produces <strong>1024 patch vectors</strong> — from the 14-pixel patch stride of SigLIP: (448/14)² = 1024. A query of M tokens produces M vectors. Only the projection head and lightweight <strong>LoRA adapters</strong> (rank 32, α=32) are trained; the backbone is mostly frozen.</p>
+<p>Training uses 118,695 query–page pairs, 1 epoch, batch size 32 across 8 GPUs, learning rate 5×10⁻⁵ with linear warmup.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="cpb-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle" letter-spacing="0.08em">COLPALI ARCHITECTURE</text>
+  <text x="80" y="34" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">DOCUMENT PAGE</text>
+  <rect x="50" y="42" width="60" height="50" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <line x1="70" y1="42" x2="70" y2="92" stroke="#ccc" stroke-width="0.5"/>
+  <line x1="90" y1="42" x2="90" y2="92" stroke="#ccc" stroke-width="0.5"/>
+  <line x1="50" y1="62" x2="110" y2="62" stroke="#ccc" stroke-width="0.5"/>
+  <line x1="50" y1="75" x2="110" y2="75" stroke="#ccc" stroke-width="0.5"/>
+  <rect x="70" y="62" width="20" height="13" fill="#0a0a0a" opacity="0.18"/>
+  <text x="80" y="100" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">448×448 px</text>
+  <line x1="80" y1="104" x2="80" y2="116" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="28" y="118" width="104" height="26" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <text x="80" y="135" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">SigLIP-So400m/14</text>
+  <line x1="80" y1="144" x2="80" y2="156" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="28" y="158" width="104" height="22" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="80" y="173" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">1024 patch vecs</text>
+  <line x1="80" y1="180" x2="80" y2="192" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="28" y="194" width="104" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a"/>
+  <text x="80" y="209" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#f8f8f6" text-anchor="middle">Linear → D=128</text>
+  <text x="260" y="34" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">QUERY TEXT</text>
+  <rect x="210" y="42" width="100" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <text x="260" y="61" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">"revenue trend Q3"</text>
+  <line x1="260" y1="70" x2="260" y2="116" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="208" y="118" width="104" height="26" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <text x="260" y="135" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">Gemma-2B LM</text>
+  <line x1="260" y1="144" x2="260" y2="156" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="208" y="158" width="104" height="22" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="260" y="173" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">M query vecs</text>
+  <line x1="260" y1="180" x2="260" y2="192" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="208" y="194" width="104" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a"/>
+  <text x="260" y="209" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#f8f8f6" text-anchor="middle">Linear → D=128</text>
+  <line x1="132" y1="205" x2="156" y2="228" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <line x1="208" y1="205" x2="184" y2="228" stroke="#888" stroke-width="1" marker-end="url(#cpb-arr)"/>
+  <rect x="146" y="230" width="48" height="22" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a"/>
+  <text x="170" y="245" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#f8f8f6" text-anchor="middle">MaxSim</text>
+  <text x="170" y="118" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">LoRA r=32</text>
+  <text x="170" y="128" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888" text-anchor="middle">(both towers)</text>
+</svg>`
+      },
+      {
+        level: 'Mathematics',
+        title: 'Contrastive loss, MaxSim, and ViDoRe results',
+        body: `<p>The <strong>contrastive training loss</strong> is pairwise cross-entropy over in-batch negatives. For a batch of b query–page pairs with MaxSim scores s⁺ (positive) and s⁻ (hardest negative in batch):</p>
+<div class="math-block">ℒ = (1/b) Σₖ log(1 + exp(s⁻ₖ − s⁺ₖ))</div>
+<p>The <strong>MaxSim</strong> scoring operator, applied after L2-normalizing all vectors:</p>
+<div class="math-block">score(q, d) = Σᵢ₌₁ᴹ  max_{j=1…N}  (qᵢ · dⱼ)</div>
+<p>Storage is 257 KB/page uncompressed (1024 × 128-dim float32 vectors). <strong>Token pooling</strong> compresses to ~2.5 KB with only 2% performance loss. Query encoding runs in ~30 ms; indexing at 0.39 s/page — vs 7.22 s/page for the classical pipeline.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle" letter-spacing="0.08em">VIDORE BENCHMARK  —  nDCG@5</text>
+  <rect x="10" y="24" width="320" height="18" fill="#0a0a0a" rx="2"/>
+  <text x="18" y="37" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6">Domain</text>
+  <text x="196" y="37" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="middle">Text Pipeline</text>
+  <text x="296" y="37" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="middle">ColPali</text>
+  <line x1="10" y1="42" x2="330" y2="42" stroke="#ddd" stroke-width="0.5"/>
+  <text x="18" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">ArxivQA (figures)</text>
+  <text x="196" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">40.1</text>
+  <text x="296" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">79.1</text>
+  <rect x="155" y="49" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="155" y="49" width="32" height="5" rx="1" fill="#888" opacity="0.6"/>
+  <rect x="235" y="49" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="235" y="49" width="63" height="5" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="62" x2="330" y2="62" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">TabFQuAD (tables)</text>
+  <text x="196" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">35.4</text>
+  <text x="296" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">83.9</text>
+  <rect x="155" y="69" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="155" y="69" width="28" height="5" rx="1" fill="#888" opacity="0.6"/>
+  <rect x="235" y="69" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="235" y="69" width="67" height="5" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="82" x2="330" y2="82" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="96" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">InfoVQA (infographics)</text>
+  <text x="196" y="96" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">70.0</text>
+  <text x="296" y="96" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">81.8</text>
+  <rect x="155" y="89" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="155" y="89" width="56" height="5" rx="1" fill="#888" opacity="0.6"/>
+  <rect x="235" y="89" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="235" y="89" width="65" height="5" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="102" x2="330" y2="102" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="116" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">DocVQA (documents)</text>
+  <text x="196" y="116" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">62.5</text>
+  <text x="296" y="116" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">74.1</text>
+  <rect x="155" y="109" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="155" y="109" width="50" height="5" rx="1" fill="#888" opacity="0.6"/>
+  <rect x="235" y="109" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="235" y="109" width="59" height="5" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="122" x2="330" y2="122" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="136" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Shift Report (medical)</text>
+  <text x="196" y="136" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">78.0</text>
+  <text x="296" y="136" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">88.2</text>
+  <rect x="155" y="129" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="155" y="129" width="62" height="5" rx="1" fill="#888" opacity="0.6"/>
+  <rect x="235" y="129" width="80" height="5" rx="1" fill="#eeeeea"/>
+  <rect x="235" y="129" width="70" height="5" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="144" x2="330" y2="144" stroke="#0a0a0a" stroke-width="0.8"/>
+  <rect x="10" y="148" width="320" height="20" fill="#eeeeea" rx="2"/>
+  <text x="18" y="162" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">Average (10 tasks)</text>
+  <text x="196" y="162" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">67.0</text>
+  <text x="296" y="162" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">81.3</text>
+  <rect x="10" y="180" width="152" height="66" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="86" y="194" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">INFERENCE (NVIDIA L4)</text>
+  <text x="18" y="210" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Query latency</text>
+  <text x="154" y="210" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="end">~30 ms</text>
+  <text x="18" y="224" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Indexing speed</text>
+  <text x="154" y="224" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="end">0.39 s/page</text>
+  <text x="18" y="238" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Storage (raw)</text>
+  <text x="154" y="238" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="end">257 KB/page</text>
+  <rect x="178" y="180" width="152" height="66" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="254" y="194" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">TRAINING CONFIG</text>
+  <text x="186" y="210" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Pairs</text>
+  <text x="322" y="210" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="end">118,695</text>
+  <text x="186" y="224" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">LoRA rank</text>
+  <text x="322" y="224" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="end">r=32, α=32</text>
+  <text x="186" y="238" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Epochs / GPUs</text>
+  <text x="322" y="238" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="end">1 / 8×GPU</text>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
