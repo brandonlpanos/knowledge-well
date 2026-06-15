@@ -149,6 +149,33 @@ body {
   transition: color 0.18s;
 }
 
+/* ── SECTION HEADINGS ─────────────────────────────────────────── */
+.section-heading {
+  grid-column: 1 / -1;
+  border-right: 1.5px solid var(--black);
+  border-top: 1.5px solid var(--black);
+  border-bottom: 1.5px solid var(--black);
+  padding: 1.2rem 2.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+}
+
+.section-heading-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+
+.section-heading-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
 /* placeholder "add" cell */
 .method-card-add {
   border-right: 1.5px solid var(--black);

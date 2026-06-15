@@ -1997,6 +1997,9 @@ L_KoLeo = −(1/n) Σᵢ log d_nn(z_i / ‖z_i‖)</div>
     ]
   },
 
+  // ── SECTION ───────────────────────────────────────────────────────────────
+  { section: 'Mechanistic Interpretability' },
+
   // ── SUPERPOSITION ─────────────────────────────────────────────────────────
   {
     id: 'superposition',

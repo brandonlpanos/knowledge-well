@@ -11,21 +11,28 @@ let scrollObserver = null;
 // ── LANDING ───────────────────────────────────────────────────────────────────
 
 function renderLanding() {
+  const concepts = CONCEPTS.filter(c => !c.section);
   document.getElementById('method-count').textContent =
-    `${CONCEPTS.length} concept${CONCEPTS.length !== 1 ? 's' : ''}`;
+    `${concepts.length} concept${concepts.length !== 1 ? 's' : ''}`;
 
   const grid = document.getElementById('method-grid');
   grid.innerHTML =
-    CONCEPTS.map(c => `
-      <div class="method-card" onclick="openConcept('${c.id}')">
-        <div class="card-icon">${c.icon}</div>
-        <div class="card-tag">${c.tag}</div>
-        <div class="card-name">${c.name}</div>
-        <div class="card-full-name">${c.fullName}</div>
-        <div class="card-tagline">${c.tagline}</div>
-        <span class="card-arrow">→</span>
-      </div>
-    `).join('') +
+    CONCEPTS.map(c => {
+      if (c.section) return `
+        <div class="section-heading">
+          <span class="section-heading-label">Section</span>
+          <span class="section-heading-title">${c.section}</span>
+        </div>`;
+      return `
+        <div class="method-card" onclick="openConcept('${c.id}')">
+          <div class="card-icon">${c.icon}</div>
+          <div class="card-tag">${c.tag}</div>
+          <div class="card-name">${c.name}</div>
+          <div class="card-full-name">${c.fullName}</div>
+          <div class="card-tagline">${c.tagline}</div>
+          <span class="card-arrow">→</span>
+        </div>`;
+    }).join('') +
     `<div class="method-card-add">
        <div class="add-icon">+</div>
        <div class="add-label">Add concept</div>
