@@ -1997,6 +1997,187 @@ L_KoLeo = −(1/n) Σᵢ log d_nn(z_i / ‖z_i‖)</div>
     ]
   },
 
+  // ── SUPERPOSITION ─────────────────────────────────────────────────────────
+  {
+    id: 'superposition',
+    name: 'Superposition',
+    fullName: 'Linear Representation Hypothesis & Superposition',
+    tag: 'Mechanistic Interpretability',
+    tagline: 'Networks pack more features than dimensions by tolerating interference',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="36" cy="36" r="22" stroke="currentColor" stroke-width="1.2" opacity="0.25"/>
+      <line x1="36" y1="36" x2="56" y2="24" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="36" y1="36" x2="14" y2="22" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="36" y1="36" x2="36" y2="10" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="36" y1="36" x2="58" y2="44" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="36" y1="36" x2="16" y2="50" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="56" cy="24" r="3" fill="currentColor" opacity="0.8"/>
+      <circle cx="14" cy="22" r="3" fill="currentColor" opacity="0.8"/>
+      <circle cx="36" cy="10" r="3" fill="currentColor" opacity="0.8"/>
+      <circle cx="58" cy="44" r="3" fill="currentColor" opacity="0.8"/>
+      <circle cx="16" cy="50" r="3" fill="currentColor" opacity="0.8"/>
+      <circle cx="36" cy="36" r="4" fill="currentColor"/>
+      <text x="36" y="66" font-family="monospace" font-size="6" fill="currentColor" text-anchor="middle">n feats &gt; d dims</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Features are directions, not neurons',
+        body: `<p>The naive hope for interpretability: each neuron detects one thing. Neuron 42 fires for "dog", neuron 43 for "cat". Inspect each neuron and you have a dictionary of the model's concepts.</p>
+<p>This is almost never true. What <em>is</em> true, and surprisingly well-supported empirically, is the <strong>linear representation hypothesis</strong>: features are encoded as <em>directions</em> in the residual stream or activation space — not as individual neurons. A "dog" feature might be a specific vector in ℝᵈ. Several neurons each partially encode it; no single one owns it.</p>
+<p>This immediately raises a question: if a model has d dimensions, can it only represent d features? The answer — from Elhage et al.'s <em>Toy Models of Superposition</em> (2022) — is a decisive <strong>no</strong>. A network can represent far more features than it has dimensions, at the cost of a little mutual interference. This is superposition, and it is the mechanistic root of why individual neurons look polysemantic.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="85" y="18" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">neuron view</text>
+  <text x="255" y="18" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">direction view</text>
+  <line x1="170" y1="24" x2="170" y2="248" stroke="#ddd" stroke-width="1"/>
+  <rect x="20" y="30" width="130" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="85" y="44" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">neuron 0 → "dog"?</text>
+  <rect x="20" y="56" width="130" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="85" y="70" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">neuron 1 → "cat"?</text>
+  <rect x="20" y="82" width="130" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="85" y="96" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">neuron 2 → ???</text>
+  <text x="85" y="124" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">reality: each neuron</text>
+  <text x="85" y="137" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">responds to many things</text>
+  <text x="85" y="152" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" text-anchor="middle">polysemantic</text>
+  <circle cx="255" cy="130" r="80" stroke="#0a0a0a" stroke-width="1" opacity="0.12"/>
+  <line x1="255" y1="130" x2="314" y2="83" stroke="#0a0a0a" stroke-width="1.8" marker-end="url(#spm)"/>
+  <line x1="255" y1="130" x2="183" y2="82" stroke="#0a0a0a" stroke-width="1.8" marker-end="url(#spm)"/>
+  <line x1="255" y1="130" x2="255" y2="50" stroke="#0a0a0a" stroke-width="1.8" marker-end="url(#spm)"/>
+  <line x1="255" y1="130" x2="329" y2="158" stroke="#0a0a0a" stroke-width="1.4" marker-end="url(#spm)" opacity="0.6"/>
+  <line x1="255" y1="130" x2="190" y2="195" stroke="#0a0a0a" stroke-width="1.4" marker-end="url(#spm)" opacity="0.6"/>
+  <text x="320" y="80" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">f₁</text>
+  <text x="172" y="79" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">f₂</text>
+  <text x="258" y="46" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">f₃</text>
+  <text x="332" y="162" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">f₄</text>
+  <text x="176" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">f₅</text>
+  <circle cx="255" cy="130" r="4" fill="#0a0a0a"/>
+  <text x="255" y="222" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">5 features in 2D space</text>
+  <text x="255" y="236" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">near-orthogonal directions</text>
+  <defs>
+    <marker id="spm" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Core Mechanism',
+        title: 'Sparse features enable an overcomplete basis',
+        body: `<p>Why can a network do this without everything colliding? Because real-world features are <strong>sparse</strong>: at any given input, only a tiny fraction of all possible features are active simultaneously. "Is a banana", "has four legs", "is a legal document" are almost never all true at once.</p>
+<p>Sparsity makes interference tolerable. If feature A and feature B are encoded as non-orthogonal directions and both fire at the same time, their dot product creates noise in each other's read-out. But if A fires in only 1% of inputs and B fires in only 0.5%, the expected interference is tiny — much smaller than the signal.</p>
+<p>The network exploits this by packing features into a set of <strong>near-orthogonal directions</strong> in ℝᵈ — an overcomplete, or <em>redundant</em>, frame. In d=2 dimensions you can fit far more than 2 nearly-orthogonal directions if you tolerate a small, bounded amount of pairwise interference. The sparser the features, the more you can pack in.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">capacity vs. sparsity</text>
+  <line x1="40" y1="210" x2="310" y2="210" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="210" x2="40" y2="30" stroke="#0a0a0a" stroke-width="1"/>
+  <path d="M40,205 C80,200 120,170 170,110 S260,50 310,36" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+  <text x="315" y="39" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a"># features</text>
+  <text x="315" y="50" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">stored</text>
+  <text x="175" y="224" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">feature sparsity  →  sparser</text>
+  <text x="25" y="120" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" transform="rotate(-90 25 120)">capacity</text>
+  <line x1="40" y1="205" x2="44" y2="205" stroke="#888" stroke-width="1"/>
+  <text x="6" y="208" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">d</text>
+  <line x1="40" y1="36" x2="44" y2="36" stroke="#888" stroke-width="1"/>
+  <text x="6" y="39" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">≫d</text>
+  <circle cx="170" cy="110" r="5" fill="#0a0a0a"/>
+  <line x1="170" y1="110" x2="170" y2="210" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="4 3" opacity="0.5"/>
+  <text x="172" y="195" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">1% active</text>
+  <rect x="50" y="30" width="220" height="52" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 3" fill="#eeeeea"/>
+  <text x="160" y="48" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">interference on feature i from feature j:</text>
+  <text x="160" y="66" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">E[noise] ∝ pⱼ · (fᵢ · fⱼ)²</text>
+  <text x="160" y="79" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">small when p ≈ 0  OR  directions are orthogonal</text>
+</svg>`
+      },
+
+      {
+        level: 'Geometry',
+        title: 'Polytope geometry and the origin of polysemanticity',
+        body: `<p>Elhage et al. study a toy model: a linear encoder–decoder that compresses n features into d dimensions and reconstructs them with a ReLU. At the phase transition where superposition switches on, the weight vectors arrange into recognizable <strong>geometric structures</strong>: pairs of antipodal vectors on a circle (d=2), vertices of a pentagon, a tetrahedron, or an icosahedron — uniform polytopes in the d-dimensional unit sphere.</p>
+<p>These are not coincidences. The optimal solution for packing k nearly-orthogonal unit vectors in ℝᵈ is exactly the vertices of the most symmetric polytope that fits k points, and the toy model finds this solution by gradient descent.</p>
+<p><strong>Polysemantic neurons</strong> are a direct consequence. A neuron is a coordinate axis. When features are stored as polytope vertices, each axis has non-zero projection onto many feature directions. Reading out one neuron's activation therefore mixes many features — the neuron looks like it responds to unrelated stimuli not because the network is doing something inscrutable, but because it is the noisy projection of an overcomplete geometric basis.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="85" y="16" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">d=2, n=5 (pentagon)</text>
+  <text x="255" y="16" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">neuron axis vs. features</text>
+  <line x1="170" y1="24" x2="170" y2="248" stroke="#ddd" stroke-width="1"/>
+  <circle cx="85" cy="130" r="72" stroke="#0a0a0a" stroke-width="1" opacity="0.15"/>
+  <line x1="85" y1="130" x2="85" y2="58" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.3"/>
+  <line x1="85" y1="130" x2="149" y2="130" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.3"/>
+  <line x1="85" y1="130" x2="156" y2="89" stroke="#0a0a0a" stroke-width="2" marker-end="url(#spm2)"/>
+  <line x1="85" y1="130" x2="107" y2="61" stroke="#0a0a0a" stroke-width="2" marker-end="url(#spm2)"/>
+  <line x1="85" y1="130" x2="41" y2="61" stroke="#0a0a0a" stroke-width="2" marker-end="url(#spm2)"/>
+  <line x1="85" y1="130" x2="18" y2="107" stroke="#0a0a0a" stroke-width="2" marker-end="url(#spm2)"/>
+  <line x1="85" y1="130" x2="18" y2="153" stroke="#0a0a0a" stroke-width="2" marker-end="url(#spm2)"/>
+  <text x="160" y="87" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">f₁</text>
+  <text x="109" y="58" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">f₂</text>
+  <text x="29" y="58" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">f₃</text>
+  <text x="4" y="106" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">f₄</text>
+  <text x="4" y="157" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">f₅</text>
+  <text x="85" y="210" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">5 features, 2 dims</text>
+  <text x="85" y="222" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">pentagon arrangement</text>
+  <rect x="185" y="36" width="142" height="190" rx="3" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="256" y="54" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">neuron 0 activation</text>
+  <text x="256" y="66" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">= projection onto x-axis</text>
+  <line x1="196" y1="90" x2="318" y2="90" stroke="#0a0a0a" stroke-width="0.8" opacity="0.3"/>
+  <rect x="196" y="95" width="122" height="12" rx="1" fill="#0a0a0a" opacity="0.6"/>
+  <text x="188" y="105" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">f₁</text>
+  <rect x="196" y="113" width="38" height="12" rx="1" fill="#0a0a0a" opacity="0.25"/>
+  <text x="188" y="123" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">f₂</text>
+  <rect x="196" y="131" width="19" height="12" rx="1" fill="#0a0a0a" opacity="0.15"/>
+  <text x="188" y="141" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">f₃</text>
+  <rect x="196" y="149" width="19" height="12" rx="1" fill="#0a0a0a" opacity="0.15"/>
+  <text x="188" y="159" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">f₄</text>
+  <rect x="196" y="167" width="38" height="12" rx="1" fill="#0a0a0a" opacity="0.25"/>
+  <text x="188" y="177" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">f₅</text>
+  <text x="256" y="204" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">one neuron → mixed signal</text>
+  <text x="256" y="216" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">= polysemanticity</text>
+  <defs>
+    <marker id="spm2" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'Capacity, interference, and the superposition phase transition',
+        body: `<p>Elhage et al. define a one-layer model: compress n features through a d-dimensional bottleneck and reconstruct. With feature importances {w₁,…,wₙ} and sparsity probabilities {p₁,…,pₙ}, the loss for feature i is:</p>
+<div class="math-block">Lᵢ = wᵢ · [1 − ‖fᵢ‖² + Σ_{j≠i} pⱼ (fᵢ·fⱼ)²]</div>
+<p>The first term rewards a large norm (feature should be stored); the second is the <strong>interference cost</strong> from all other features j, scaled by their probability pⱼ. When sparsity is high (pⱼ → 0), interference is cheap and the model stores many features in superposition. When features are dense (pⱼ → 1), interference is costly and the model collapses to an orthogonal basis — at most d features.</p>
+<p>The transition between these regimes is sharp: a <strong>first-order phase transition</strong> at a critical sparsity. Below it, the model uses a clean orthogonal basis. Above it, features snap discontinuously into a superposed polytope arrangement. The total <strong>feature capacity</strong> scales as:</p>
+<div class="math-block">n_eff ≈ d / (1 − S),   S = 1 − p̄  (mean sparsity)</div>
+<p>This is why sparse feature sets allow capacity well beyond d: a 512-dimensional model with 99%-sparse features can effectively represent orders of magnitude more than 512 concepts, accepting small but bounded pairwise interference for each.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">superposition phase diagram</text>
+  <line x1="40" y1="210" x2="310" y2="210" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="210" x2="40" y2="30" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="175" y="228" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">sparsity  S = 1 − p</text>
+  <text x="8" y="125" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" transform="rotate(-90 8 125)">features stored</text>
+  <line x1="40" y1="158" x2="165" y2="158" stroke="#0a0a0a" stroke-width="2"/>
+  <path d="M165,158 L165,50" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
+  <path d="M165,50 C195,48 240,43 310,36" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+  <text x="100" y="174" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">orthogonal regime</text>
+  <text x="100" y="185" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">≤ d features</text>
+  <text x="240" y="68" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">superposition</text>
+  <text x="240" y="80" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">regime ≫ d features</text>
+  <line x1="36" y1="158" x2="44" y2="158" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="6" y="161" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">d</text>
+  <text x="160" y="228" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">S*</text>
+  <text x="156" y="220" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">phase</text>
+  <text x="152" y="210" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">transition</text>
+  <rect x="10" y="26" width="320" height="0" rx="0"/>
+  <rect x="30" y="116" width="296" height="80" rx="2" stroke="#0a0a0a" stroke-width="0" fill="none"/>
+  <rect x="30" y="116" width="0" height="0" rx="2"/>
+  <rect x="10" y="232" width="320" height="24" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="248" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">n_eff ≈ d / (1−S)   |   interference per feature ∝ p · (fᵢ·fⱼ)²</text>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
