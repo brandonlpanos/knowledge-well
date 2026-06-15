@@ -2178,6 +2178,956 @@ L_KoLeo = −(1/n) Σᵢ log d_nn(z_i / ‖z_i‖)</div>
     ]
   },
 
+  // ── CIRCUITS ───────────────────────────────────────────────────────────────
+  {
+    id: 'circuits',
+    name: 'Circuits',
+    fullName: 'Mechanistic Circuits & Causal Intervention',
+    tag: 'Mechanistic Interpretability',
+    tagline: 'Computation decomposes into reusable, verifiable subgraphs',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="22" r="5" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="14" cy="50" r="5" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="36" cy="36" r="5" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="58" cy="22" r="5" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="58" cy="50" r="5" stroke="currentColor" stroke-width="1.4"/>
+      <line x1="19" y1="22" x2="31" y2="33" stroke="currentColor" stroke-width="1.2"/>
+      <line x1="19" y1="50" x2="31" y2="39" stroke="currentColor" stroke-width="1.2"/>
+      <line x1="41" y1="33" x2="53" y2="22" stroke="currentColor" stroke-width="1.2"/>
+      <line x1="41" y1="39" x2="53" y2="50" stroke="currentColor" stroke-width="1.2"/>
+      <line x1="14" y1="27" x2="14" y2="45" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>
+      <text x="36" y="67" font-family="monospace" font-size="6" fill="currentColor" text-anchor="middle">circuit</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Neural nets as programs, not black boxes',
+        body: `<p>Olah et al.'s <em>Zoom In</em> (2020) proposes a wager: neural networks are not inscrutable blobs. They implement <strong>algorithms</strong> — small, reusable computational subgraphs that can be found, named, and validated. These subgraphs are circuits.</p>
+<p>A circuit is a set of features (directions in activation space, per the linear representation hypothesis) connected by weights that implement a specific, human-readable computation. The hope is that the full model decomposes into a library of such circuits, many of which recur across tasks and even across models trained independently.</p>
+<p>The claim is not that every weight matters. Most of the network is inert for any given behavior. A circuit is the <em>sparse subgraph</em> that causally explains a specific output. This decomposition matters because it is the difference between understanding and post-hoc rationalization: a circuit that causally produces a behavior is evidence of understanding; a description that merely correlates with output is storytelling.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="16" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">full network vs. active circuit</text>
+  <g opacity="0.18">
+    <circle cx="52" cy="80" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="52" cy="104" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="52" cy="128" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="52" cy="152" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="52" cy="176" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="120" cy="80" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="120" cy="104" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="120" cy="128" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="120" cy="152" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <circle cx="120" cy="176" r="6" stroke="#0a0a0a" stroke-width="1"/>
+    <line x1="58" y1="80" x2="114" y2="80" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="80" x2="114" y2="104" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="80" x2="114" y2="128" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="80" x2="114" y2="152" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="80" x2="114" y2="176" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="104" x2="114" y2="80" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="104" x2="114" y2="104" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="104" x2="114" y2="128" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="104" x2="114" y2="152" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="104" x2="114" y2="176" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="128" x2="114" y2="80" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="128" x2="114" y2="104" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="128" x2="114" y2="128" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="128" x2="114" y2="152" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="128" x2="114" y2="176" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="152" x2="114" y2="80" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="152" x2="114" y2="104" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="152" x2="114" y2="128" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="152" x2="114" y2="152" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="152" x2="114" y2="176" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="176" x2="114" y2="80" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="176" x2="114" y2="104" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="176" x2="114" y2="128" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="176" x2="114" y2="152" stroke="#0a0a0a" stroke-width="0.5"/>
+    <line x1="58" y1="176" x2="114" y2="176" stroke="#0a0a0a" stroke-width="0.5"/>
+  </g>
+  <line x1="58" y1="104" x2="114" y2="128" stroke="#0a0a0a" stroke-width="2"/>
+  <line x1="58" y1="152" x2="114" y2="128" stroke="#0a0a0a" stroke-width="2"/>
+  <circle cx="52" cy="104" r="6" fill="#0a0a0a" opacity="0.85" stroke="#0a0a0a" stroke-width="1.5"/>
+  <circle cx="52" cy="152" r="6" fill="#0a0a0a" opacity="0.85" stroke="#0a0a0a" stroke-width="1.5"/>
+  <circle cx="120" cy="128" r="6" fill="#0a0a0a" opacity="0.85" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="86" cy="240" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle"/>
+  <text x="86" y="220" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">sparse active circuit</text>
+  <text x="86" y="233" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">inside dense network</text>
+  <rect x="188" y="36" width="138" height="190" rx="3" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="257" y="56" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">Zoom In conjecture</text>
+  <text x="196" y="78" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">1. Features are the</text>
+  <text x="196" y="91" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">   right unit of analysis</text>
+  <text x="196" y="111" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">2. Features connect into</text>
+  <text x="196" y="124" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">   circuits</text>
+  <text x="196" y="144" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">3. Circuits are universal</text>
+  <text x="196" y="157" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">   — recur across models</text>
+  <text x="196" y="185" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ decompose, name,</text>
+  <text x="196" y="198" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">   validate each piece</text>
+</svg>`
+      },
+
+      {
+        level: 'Existence Proofs',
+        title: 'Induction heads, IOI, and grokking circuits',
+        body: `<p><strong>Induction heads</strong> (Olsson et al., 2022) are the cleanest example. In two-layer transformers, a specific pair of attention heads implements in-context copying: one head (the "previous token head") shifts the key signal by one position; a second head (the "induction head") queries for a past token matching the current token and attends to what followed it. Together they implement the algorithm <em>if [A][B]…[A] then predict [B]</em>. They appear in every transformer trained long enough, regardless of initialization — a candidate universal.</p>
+<p><strong>Indirect Object Identification (IOI)</strong> (Wang et al., 2022): given "John and Mary went to the store. John gave a drink to ___", GPT-2 Medium reliably outputs "Mary". Wang et al. identify a circuit of ~26 attention heads implementing this, including name-mover heads, inhibition heads, and duplicate-token heads. Ablating the circuit collapses performance; restoring only these heads from a patched run recovers it.</p>
+<p><strong>Grokking circuits</strong> (Nanda et al., 2023): a small transformer trained on modular addition (a+b mod p) eventually "groks" — generalizes long after training loss saturates. The learned algorithm uses Fourier components: it embeds inputs as frequency vectors, rotates them via attention, and reads off the result with cosine/sine detectors. The circuit is not just described but fully reverse-engineered: you can predict the model's logits from the circuit alone.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">induction head mechanism</text>
+  <rect x="14" y="24" width="40" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="#eeeeea"/>
+  <text x="34" y="38" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">[A]</text>
+  <rect x="62" y="24" width="40" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="#eeeeea"/>
+  <text x="82" y="38" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">[B]</text>
+  <rect x="110" y="24" width="40" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" fill="#eeeeea" opacity="0.5"/>
+  <text x="130" y="38" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">…</text>
+  <rect x="158" y="24" width="40" height="20" rx="2" stroke="#0a0a0a" stroke-width="2" fill="#0a0a0a" opacity="0.1"/>
+  <text x="178" y="38" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">[A]</text>
+  <rect x="206" y="24" width="40" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="226" y="38" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">[?]</text>
+  <path d="M82 44 C 82 66 178 66 178 44" stroke="#888" stroke-width="1" fill="none" stroke-dasharray="3 2"/>
+  <text x="130" y="64" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">prev-token head</text>
+  <text x="130" y="75" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">shifts key by 1</text>
+  <path d="M178 44 C 178 90 226 90 226 44" stroke="#0a0a0a" stroke-width="2" fill="none" marker-end="url(#cim)"/>
+  <text x="204" y="88" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">induction head</text>
+  <text x="204" y="99" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">attends to [A]→[B]</text>
+  <text x="226" y="120" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">predict [B]</text>
+  <line x1="14" y1="148" x2="326" y2="148" stroke="#ddd" stroke-width="1"/>
+  <text x="170" y="164" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">IOI circuit sketch  (GPT-2 Medium)</text>
+  <rect x="14" y="174" width="70" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="49" y="188" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">dup-token heads</text>
+  <rect x="14" y="202" width="70" height="20" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="49" y="216" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">S-inhibition</text>
+  <rect x="134" y="186" width="72" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.1"/>
+  <text x="170" y="200" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">name-mover heads</text>
+  <rect x="256" y="186" width="70" height="20" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="291" y="200" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">logit output</text>
+  <line x1="84" y1="184" x2="134" y2="193" stroke="#0a0a0a" stroke-width="1" marker-end="url(#cim)"/>
+  <line x1="84" y1="212" x2="134" y2="198" stroke="#0a0a0a" stroke-width="1" marker-end="url(#cim)"/>
+  <line x1="206" y1="196" x2="256" y2="196" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cim)"/>
+  <text x="170" y="242" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">~26 heads identified; ablating circuit → chance performance</text>
+  <defs>
+    <marker id="cim" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Causal Methods',
+        title: 'Patching, scrubbing, and causal abstraction',
+        body: `<p>Describing a circuit is not proving it. The epistemic upgrade comes from <strong>causal intervention</strong>: surgically edit a specific activation and measure the effect on the output. If the behavior changes as predicted, the component is causally responsible — not merely correlated.</p>
+<p><strong>Activation patching</strong>: run the model on a "clean" and a "corrupted" input. Patch one activation from the clean run into the corrupted run mid-forward-pass. Measure how much output recovers. This localizes which components carry the relevant information.</p>
+<p><strong>Path patching</strong> (Wang et al.) extends this to edges: patch the signal flowing along a specific weight path, holding everything else fixed. You can attribute behavior to individual attention-head-to-attention-head edges.</p>
+<p><strong>Causal scrubbing</strong> (Chan et al., 2022) provides a principled score: given a hypothesized circuit graph, replace all activations <em>outside</em> the circuit with samples from a reference distribution. The residual performance is your scrubbing score — it quantifies how much of the behavior the circuit alone explains.</p>
+<p><strong>Distributed Alignment Search (DAS)</strong> / causal abstraction (Geiger et al., 2023) goes further: it searches for a rotation of the activation space such that the model implements a specified causal graph under that rotation. This validates not just "which nodes matter" but "does the network's internal structure match this causal diagram."</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">activation patching</text>
+  <rect x="14" y="26" width="130" height="26" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="79" y="43" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">clean run  x*</text>
+  <rect x="14" y="62" width="130" height="26" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2"/>
+  <text x="79" y="79" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888" text-anchor="middle">corrupted run  x</text>
+  <rect x="14" y="100" width="56" height="22" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea" opacity="0.6"/>
+  <text x="42" y="115" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">layer 0</text>
+  <rect x="78" y="100" width="56" height="22" rx="2" stroke="#0a0a0a" stroke-width="2" fill="#0a0a0a" opacity="0.12"/>
+  <text x="106" y="115" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">layer L ← patch</text>
+  <rect x="14" y="132" width="130" height="22" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea" opacity="0.6"/>
+  <text x="79" y="147" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">layer L+1 … output</text>
+  <path d="M79 52 C 79 84 106 84 106 100" stroke="#0a0a0a" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#cam)"/>
+  <text x="94" y="84" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">patch</text>
+  <path d="M42 122 L42 132" stroke="#0a0a0a" stroke-width="1" marker-end="url(#cam)"/>
+  <path d="M106 122 L79 132" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cam)"/>
+  <text x="79" y="174" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">measure Δ output</text>
+  <text x="79" y="187" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">→ localizes causal role</text>
+  <line x1="172" y1="24" x2="172" y2="240" stroke="#ddd" stroke-width="1"/>
+  <text x="258" y="34" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">method comparison</text>
+  <rect x="184" y="42" width="144" height="18" rx="2" fill="#0a0a0a" opacity="0.07" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="256" y="55" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">Activation patching — nodes</text>
+  <rect x="184" y="66" width="144" height="18" rx="2" fill="#0a0a0a" opacity="0.07" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="256" y="79" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">Path patching — edges</text>
+  <rect x="184" y="90" width="144" height="18" rx="2" fill="#0a0a0a" opacity="0.07" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="256" y="103" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">Causal scrubbing — subgraph</text>
+  <rect x="184" y="114" width="144" height="18" rx="2" fill="#0a0a0a" opacity="0.12" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="256" y="127" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">DAS — causal diagram</text>
+  <text x="256" y="158" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">each stronger claim</text>
+  <text x="256" y="170" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">requires stronger evidence</text>
+  <text x="256" y="190" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">correlation → causal role</text>
+  <text x="256" y="203" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">→ causal structure</text>
+  <defs>
+    <marker id="cam" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'Formal definitions and the scrubbing score',
+        body: `<p>Let M be the model's forward pass, with intermediate activations {aᵢ}. For clean input x* and corrupted input x, <strong>activation patching</strong> at node i measures:</p>
+<div class="math-block">ΔI(i) = M(x with aᵢ ← aᵢ*) − M(x)</div>
+<p>A large ΔI(i) means node i carries information that drives the clean behavior. Summing over layers and heads gives an attribution map. <strong>Path patching</strong> isolates an edge (i→j) by patching only the message flowing along that edge, freezing all other inputs to j.</p>
+<p><strong>Causal scrubbing</strong> formalizes circuit sufficiency. Given hypothesis H (a subgraph with a correspondence φ mapping nodes to "semantically equivalent" inputs), the scrubbing score is:</p>
+<div class="math-block">S(H) = E[M(x*) | resample outside H] / E[M(x*)]</div>
+<p>where activations outside H are replaced by activations from a random input with the same semantic role under φ. S(H) = 1 means the circuit fully explains the behavior; S(H) = 0 means the circuit is irrelevant.</p>
+<p><strong>DAS</strong> (Geiger et al.) searches for a rotation R such that intervening on R·a matches the predictions of a causal model C. Formally: find R minimizing E[‖C(do(Rᵢaᵢ←v)) − M(do(aᵢ←Rᵀv))‖] over interventions v. Alignment between the neural model and C under R is evidence that the network implements the causal graph, not just correlates with it.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">causal scrubbing score S(H)</text>
+  <line x1="40" y1="200" x2="300" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="200" x2="40" y2="30" stroke="#0a0a0a" stroke-width="1"/>
+  <rect x="40" y="104" width="50" height="96" fill="#0a0a0a" opacity="0.08" stroke="#0a0a0a" stroke-width="1"/>
+  <rect x="110" y="64" width="50" height="136" fill="#0a0a0a" opacity="0.08" stroke="#0a0a0a" stroke-width="1"/>
+  <rect x="180" y="34" width="50" height="166" fill="#0a0a0a" opacity="0.08" stroke="#0a0a0a" stroke-width="1"/>
+  <rect x="250" y="44" width="50" height="156" fill="#0a0a0a" opacity="0.2" stroke="#0a0a0a" stroke-width="1.5"/>
+  <text x="65" y="215" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">random</text>
+  <text x="135" y="215" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">partial</text>
+  <text x="205" y="215" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">circuit</text>
+  <text x="275" y="215" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">full model</text>
+  <line x1="36" y1="34" x2="44" y2="34" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="6" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">S=1</text>
+  <line x1="36" y1="200" x2="44" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="6" y="203" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">S=0</text>
+  <rect x="30" y="224" width="280" height="30" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="238" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">ΔI(i) = M(x, aᵢ←aᵢ*) − M(x)      path patch: fix edge i→j only</text>
+</svg>`
+      }
+    ]
+  },
+
+  // ── SPARSE AUTOENCODERS ────────────────────────────────────────────────────
+  {
+    id: 'saes',
+    name: 'SAEs',
+    fullName: 'Sparse Autoencoders & Dictionary Learning',
+    tag: 'Mechanistic Interpretability',
+    tagline: 'Decompose polysemantic activations into a monosemantic overcomplete basis',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="28" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.4"/>
+      <rect x="28" y="10" width="10" height="10" rx="1" fill="currentColor" opacity="0.7"/>
+      <rect x="28" y="24" width="10" height="10" rx="1" fill="currentColor" opacity="0.15"/>
+      <rect x="28" y="38" width="10" height="10" rx="1" fill="currentColor" opacity="0.05"/>
+      <rect x="28" y="52" width="10" height="10" rx="1" fill="currentColor" opacity="0.6"/>
+      <line x1="22" y1="33" x2="28" y2="15" stroke="currentColor" stroke-width="1" opacity="0.7"/>
+      <line x1="22" y1="35" x2="28" y2="29" stroke="currentColor" stroke-width="1" opacity="0.15"/>
+      <line x1="22" y1="37" x2="28" y2="43" stroke="currentColor" stroke-width="1" opacity="0.05"/>
+      <line x1="22" y1="39" x2="28" y2="57" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <rect x="50" y="28" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.4"/>
+      <line x1="38" y1="15" x2="50" y2="33" stroke="currentColor" stroke-width="1" opacity="0.7"/>
+      <line x1="38" y1="29" x2="50" y2="35" stroke="currentColor" stroke-width="1" opacity="0.15"/>
+      <line x1="38" y1="43" x2="50" y2="37" stroke="currentColor" stroke-width="1" opacity="0.05"/>
+      <line x1="38" y1="57" x2="50" y2="39" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <text x="36" y="70" font-family="monospace" font-size="5.5" fill="currentColor" text-anchor="middle">sparse dict</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Superposition is the problem; SAEs are the proposed fix',
+        body: `<p>Superposition means a d-dimensional activation vector is a compressed mixture of many more features. You cannot read individual neurons because each neuron is a noisy projection of an overcomplete basis — not a dedicated detector.</p>
+<p>The sparse autoencoder approach, developed by Bricken et al. in <em>Towards Monosemanticity</em> (2023), asks: can we <em>learn</em> that overcomplete basis? Train a bottleneck network that takes a d-dimensional activation, expands it into a much wider N-dimensional code (N ≫ d), forces the code to be sparse (few non-zero entries), then reconstructs the original activation. If the network learns properly, each code dimension ideally captures one human-interpretable feature.</p>
+<p>The key bet is that the model's internal features really are sparse in the wild — most are inactive for any given token — so a sparse code can find them. The dictionary (decoder weights) becomes a catalog of features; a feature fires by contributing its decoder column to the reconstructed activation. The SAE does not change the model; it is a lens trained to decompose what the model computes.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">sparse autoencoder as a decomposition lens</text>
+  <rect x="14" y="100" width="44" height="60" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="36" y="126" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">act.</text>
+  <text x="36" y="139" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">x ∈ ℝᵈ</text>
+  <text x="36" y="178" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">d dims</text>
+  <path d="M58 130 L86 130" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#saem)"/>
+  <text x="72" y="124" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">W_enc</text>
+  <rect x="88" y="30" width="44" height="200" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="110" y="126" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">f ∈ ℝᴺ</text>
+  <text x="110" y="139" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">sparse</text>
+  <rect x="92" y="34" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <rect x="92" y="44" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.05"/>
+  <rect x="92" y="54" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.55"/>
+  <rect x="92" y="64" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.03"/>
+  <rect x="92" y="74" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.02"/>
+  <rect x="92" y="84" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.48"/>
+  <rect x="92" y="94" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.02"/>
+  <rect x="92" y="104" width="36" height="6" rx="1" fill="#0a0a0a" opacity="0.01"/>
+  <text x="110" y="228" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">N ≫ d features</text>
+  <path d="M132 130 L160 130" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#saem)"/>
+  <text x="146" y="124" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">W_dec</text>
+  <rect x="162" y="100" width="44" height="60" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="184" y="126" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">x̂ ∈ ℝᵈ</text>
+  <text x="184" y="139" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">recon.</text>
+  <text x="184" y="178" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">d dims</text>
+  <rect x="222" y="26" width="106" height="200" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="275" y="44" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">decoder columns</text>
+  <text x="275" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">= feature dictionary</text>
+  <line x1="232" y1="71" x2="320" y2="71" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="240" y="85" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">feat 0: "the"</text>
+  <line x1="232" y1="92" x2="320" y2="92" stroke="#ddd" stroke-width="0.5"/>
+  <text x="240" y="106" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">feat 1: inactive</text>
+  <line x1="232" y1="112" x2="320" y2="112" stroke="#ddd" stroke-width="0.5"/>
+  <text x="240" y="126" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">feat 2: "Paris"</text>
+  <line x1="232" y1="132" x2="320" y2="132" stroke="#ddd" stroke-width="0.5"/>
+  <text x="240" y="146" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">feat 3: inactive</text>
+  <line x1="232" y1="152" x2="320" y2="152" stroke="#ddd" stroke-width="0.5"/>
+  <text x="240" y="166" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">feat 4: inactive</text>
+  <line x1="232" y1="172" x2="320" y2="172" stroke="#ddd" stroke-width="0.5"/>
+  <text x="240" y="186" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">feat 5: "capital"</text>
+  <defs>
+    <marker id="saem" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Core Mechanism',
+        title: 'Architecture, L1 penalty, and the dead-feature problem',
+        body: `<p>The SAE has two learned weight matrices. The <strong>encoder</strong> W_enc ∈ ℝ^{N×d} maps activation x to a pre-activation, adds a bias, then applies ReLU to produce sparse feature activations f:</p>
+<div class="math-block">f(x) = ReLU(W_enc(x − b_pre) + b_enc)</div>
+<p>The <strong>decoder</strong> W_dec ∈ ℝ^{d×N} reconstructs: x̂ = W_dec f(x) + b_dec. Decoder columns are L2-normalized to prevent features from growing large norms as a proxy for activation magnitude.</p>
+<p>The loss is reconstruction fidelity plus an L1 sparsity penalty:</p>
+<div class="math-block">L = ‖x − x̂‖² + λ ‖f(x)‖₁</div>
+<p>λ controls the sparsity–fidelity tradeoff. Too large: most features die (never activate, called <strong>dead features</strong>). Too small: features are dense and polysemantic, defeating the purpose. The dead-feature problem is persistent — a fraction of dictionary entries collapse to zero and never recover during training. Remedies include neuron resampling (re-initializing dead features to high-loss examples) and the <strong>TopK</strong> variant that enforces exactly k active features per token, replacing the L1 penalty entirely.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">sparsity–fidelity tradeoff</text>
+  <line x1="40" y1="200" x2="300" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="200" x2="40" y2="30" stroke="#0a0a0a" stroke-width="1"/>
+  <path d="M50,38 C80,40 120,55 170,100 S260,175 295,196" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+  <path d="M50,196 C100,194 150,180 200,140 S270,60 295,40" stroke="#0a0a0a" stroke-width="1.5" stroke-dasharray="5 3" fill="none"/>
+  <text x="300" y="42" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">sparsity</text>
+  <text x="300" y="196" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">recon.</text>
+  <text x="175" y="218" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">L1 coefficient  λ  →  larger</text>
+  <text x="16" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" transform="rotate(-90 16 118)">loss</text>
+  <circle cx="170" cy="118" r="5" fill="#0a0a0a"/>
+  <line x1="170" y1="118" x2="170" y2="200" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+  <text x="173" y="115" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">operating point</text>
+  <rect x="34" y="228" width="272" height="24" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="242" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">L = ‖x − W_dec·ReLU(W_enc x + b)‖² + λ‖f‖₁</text>
+  <text x="72" y="64" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">dead features</text>
+  <text x="72" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">(λ too large)</text>
+  <text x="254" y="168" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">polysemantic</text>
+  <text x="254" y="180" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">(λ too small)</text>
+</svg>`
+      },
+
+      {
+        level: 'Findings',
+        title: 'Towards Monosemanticity → Scaling Monosemanticity',
+        body: `<p><strong>Towards Monosemanticity</strong> (Bricken et al., 2023) applied SAEs to a single MLP layer of a one-layer transformer trained on the Pile. A 512-dimensional MLP hidden layer was expanded to a 4096-feature dictionary. The result: thousands of features that activate on specific, nameable concepts — DNA sequences, base64 strings, legal language, emotional valence, individual Arabic letters. Many are cleanly monosemantic in a way the raw neurons never were.</p>
+<p>Crucially, the paper validated features causally: steering by adding a feature's decoder column to the residual stream changed model behavior in the predicted direction. "Dog" features caused dog-related completions; suppressing a sycophancy-related feature reduced agreement behavior.</p>
+<p><strong>Scaling Monosemanticity</strong> (Templeton et al., 2024) applied much larger SAEs to Claude 3 Sonnet's middle residual stream — dictionaries up to ~34 million features. Findings at scale: features form <em>families</em> organized by geography, emotion, and syntactic role. <strong>Multimodal features</strong> activate on the same concept across languages and modalities. A "Golden Gate Bridge" feature, when clamped on, caused Claude to identify as the bridge. Emotion-like features (fear, frustration) were found and shown to influence behavior. This demonstrated SAEs are not just a lab toy: they surface structure that persists to frontier model scale.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">SAE scaling results</text>
+  <rect x="10" y="24" width="320" height="18" fill="#0a0a0a" rx="2"/>
+  <text x="18" y="37" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6">Paper</text>
+  <text x="150" y="37" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="middle">Model / Layer</text>
+  <text x="270" y="37" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="middle">Dict. size</text>
+  <line x1="10" y1="42" x2="330" y2="42" stroke="#ccc" stroke-width="0.5"/>
+  <text x="18" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Towards Mono.</text>
+  <text x="150" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">1L transformer MLP</text>
+  <text x="270" y="56" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">4 096</text>
+  <line x1="10" y1="62" x2="330" y2="62" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Scaling Mono.</text>
+  <text x="150" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">Claude 3 Sonnet mid-res</text>
+  <text x="270" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">1M – 34M</text>
+  <line x1="10" y1="82" x2="330" y2="82" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="170" y="100" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">key findings at scale</text>
+  <rect x="14" y="108" width="148" height="56" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="88" y="124" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">feature families</text>
+  <text x="88" y="138" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">geography, emotion,</text>
+  <text x="88" y="150" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">syntax cluster together</text>
+  <rect x="178" y="108" width="148" height="56" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="252" y="124" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">multimodal features</text>
+  <text x="252" y="138" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">same concept fires across</text>
+  <text x="252" y="150" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">languages &amp; modalities</text>
+  <rect x="14" y="172" width="148" height="56" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="88" y="188" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">causal steering</text>
+  <text x="88" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">clamp "Golden Gate"</text>
+  <text x="88" y="214" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">→ Claude IDs as bridge</text>
+  <rect x="178" y="172" width="148" height="56" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="252" y="188" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">emotion features</text>
+  <text x="252" y="202" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">fear / frustration found,</text>
+  <text x="252" y="214" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">influence behavior</text>
+  <text x="170" y="244" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">features validated causally via activation steering</text>
+</svg>`
+      },
+
+      {
+        level: 'Open Problems',
+        title: 'Caveats, critiques, and the move toward attribution graphs',
+        body: `<p>SAEs are under real scrutiny, and the honest picture includes three hard problems.</p>
+<p><strong>Feature splitting</strong>: as dictionary size N grows, coarse features subdivide into more specific ones (e.g., "dog" → "small dog", "large dog", "dog in context of ownership"). There is no natural stopping criterion — the right level of granularity is unclear, and different N may recover different, incommensurable feature catalogs.</p>
+<p><strong>Incomplete reconstruction</strong>: even large SAEs fail to reconstruct a significant fraction of the variance in activations. The missing component may carry structure the SAE simply cannot represent. This limits downstream causal conclusions drawn from SAE features alone.</p>
+<p><strong>Basis ambiguity</strong>: it is not proven that SAEs recover the model's "true" features rather than a convenient but arbitrary sparse basis consistent with the observations. The linear representation hypothesis gives SAEs a target, but the target is not uniquely defined.</p>
+<p>The 2025 move toward <strong>attribution graphs and circuit tracing</strong> (Anthropic's <em>Biology of a Language Model</em> work) is partly a response to these limits. Rather than building a static catalog of features, attribution graphs trace end-to-end how information flows from input tokens to output logits through cross-layer transcoder features. Cross-layer transcoders replace SAEs with a model that maps one layer's residual stream to the next layer's contribution, enabling a causal graph over the full computation — recovering not just "what features exist" but "how they interact to produce the answer."</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">SAEs vs. attribution graphs</text>
+  <rect x="14" y="26" width="148" height="110" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <text x="88" y="44" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">SAE feature catalog</text>
+  <text x="24" y="62" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">+ interpretable features</text>
+  <text x="24" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">+ scales to large models</text>
+  <text x="24" y="90" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">+ causal steering works</text>
+  <text x="24" y="108" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">− feature splitting</text>
+  <text x="24" y="122" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">− incomplete recon.</text>
+  <rect x="178" y="26" width="148" height="110" rx="3" stroke="#0a0a0a" stroke-width="2" fill="#eeeeea"/>
+  <text x="252" y="44" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">attribution graphs</text>
+  <text x="188" y="62" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">cross-layer transcoders</text>
+  <text x="188" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">map residual stream</text>
+  <text x="188" y="90" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">layer L → layer L+1</text>
+  <text x="188" y="108" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">end-to-end causal graph</text>
+  <text x="188" y="122" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">not just static catalog</text>
+  <text x="162" y="88" font-family="'JetBrains Mono',monospace" font-size="10" fill="#888">→</text>
+  <text x="170" y="162" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">transcoder: replace MLP sublayer</text>
+  <rect x="50" y="170" width="240" height="22" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="88" y="185" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">x_{L}</text>
+  <path d="M106 181 L134 181" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#saem2)"/>
+  <text x="170" y="185" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">T(x_{L})</text>
+  <path d="M200 181 L226 181" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#saem2)"/>
+  <text x="252" y="185" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">x_{L+1}</text>
+  <text x="170" y="215" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">sparse features mediate layer-to-layer information flow</text>
+  <text x="170" y="230" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">→ trace full computation path from token to logit</text>
+  <defs>
+    <marker id="saem2" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      }
+    ]
+  },
+
+  // ── CAUSAL ABSTRACTION ─────────────────────────────────────────────────────
+  {
+    id: 'causal-abstraction',
+    name: 'Causal Abstraction',
+    fullName: 'Causal Abstraction & Interchange Interventions',
+    tag: 'Mechanistic Interpretability',
+    tagline: 'A formal correctness criterion that converts interpretation into a falsifiable claim',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="10" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+      <text x="19" y="21" font-family="monospace" font-size="7" fill="currentColor" text-anchor="middle">H</text>
+      <rect x="8" y="48" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+      <text x="19" y="59" font-family="monospace" font-size="7" fill="currentColor" text-anchor="middle">N</text>
+      <rect x="42" y="10" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+      <text x="53" y="21" font-family="monospace" font-size="7" fill="currentColor" text-anchor="middle">H'</text>
+      <rect x="42" y="48" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+      <text x="53" y="59" font-family="monospace" font-size="7" fill="currentColor" text-anchor="middle">N'</text>
+      <path d="M30 17 L42 17" stroke="currentColor" stroke-width="1.3" marker-end="url(#cai)"/>
+      <path d="M30 55 L42 55" stroke="currentColor" stroke-width="1.3" marker-end="url(#cai)"/>
+      <path d="M19 24 L19 48" stroke="currentColor" stroke-width="1.3" marker-end="url(#cai)"/>
+      <path d="M53 24 L53 48" stroke="currentColor" stroke-width="1.3" marker-end="url(#cai)"/>
+      <text x="36" y="39" font-family="monospace" font-size="6" fill="currentColor" text-anchor="middle" opacity="0.6">≅</text>
+      <defs>
+        <marker id="cai" markerWidth="5" markerHeight="5" refX="3" refY="2" orient="auto">
+          <path d="M0,0 L0,4 L4,2 z" fill="currentColor"/>
+        </marker>
+      </defs>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'The central anxiety: is interpretability science or storytelling?',
+        body: `<p>The recurring fear in mechanistic interpretability is that every explanation is a story pasted onto activations after the fact. You find a pattern, you name it, you write a compelling narrative — but the model doesn't care. A different researcher finds a different pattern in the same network and writes an equally compelling narrative. Neither has been wrong; neither has been right. There is no test.</p>
+<p>Causal abstraction, developed by Geiger, Potts, Icard and collaborators, is the field's formal answer to this anxiety. It converts "here is a story about how the model works" into "here is a falsifiable claim with a pass/fail test." The key move is to demand not just that a high-level algorithm <em>correlates</em> with what the network does, but that they share the same <strong>causal structure</strong> — that intervening on the algorithm produces the same output change as the corresponding intervention on the network.</p>
+<p>This is the conceptual upgrade that makes the intervention toolkit more than a bag of techniques. The techniques — activation patching, path patching, causal scrubbing — are implementations of the same underlying idea: test claims causally, not correlationally. Causal abstraction is the unifying theory that says what "test" means and what "correct interpretation" means.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">two levels of description</text>
+  <rect x="14" y="28" width="140" height="90" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="84" y="46" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">high-level algorithm H</text>
+  <text x="24" y="66" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">variables: X, Y, Z</text>
+  <text x="24" y="81" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">causal edges: X→Z, Y→Z</text>
+  <text x="24" y="96" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">do(X←x') → Z changes</text>
+  <text x="84" y="112" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">human-readable algorithm</text>
+  <rect x="186" y="28" width="140" height="90" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="256" y="46" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">neural network N</text>
+  <text x="196" y="66" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">activations: a₀, a₁, …</text>
+  <text x="196" y="81" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">weights: W₁, W₂, …</text>
+  <text x="196" y="96" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">patch aᵢ → output changes</text>
+  <text x="256" y="112" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">opaque computation</text>
+  <text x="170" y="142" font-family="'JetBrains Mono',monospace" font-size="10" fill="#888" text-anchor="middle">≅ ?</text>
+  <rect x="44" y="158" width="252" height="44" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <text x="170" y="177" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">correctness criterion: swap X in H and aᵢ in N</text>
+  <text x="170" y="193" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">→ outputs must change identically</text>
+  <text x="170" y="240" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">correlation is not enough — causal structure must match</text>
+</svg>`
+      },
+
+      {
+        level: 'Lineage',
+        title: 'From Pearl to ROME to AtP*',
+        body: `<p>The lineage begins with <strong>Pearl's causal mediation analysis</strong> (2001): given a causal DAG, decompose the total effect of X on Y into a direct effect and an indirect effect mediated through intermediate variable M. The key objects are the Natural Direct Effect (NDE) and Natural Indirect Effect (NIE), defined via counterfactual do-expressions — you hold M fixed at its value under one treatment while varying X.</p>
+<p>This entered NLP via <strong>Vig et al. (2020)</strong>, who applied causal mediation to localize gender bias in GPT-2: which attention heads mediate the bias? They treat each head's output as the mediator M and measure how much the bias effect flows through it.</p>
+<p><strong>ROME and causal tracing</strong> (Meng et al., 2022) applied the same logic to factual recall: "The Eiffel Tower is in ___". Causal tracing patches in activations from a corrupted run (where "Eiffel Tower" is scrambled) into a clean run, one position and layer at a time, measuring which site restores the correct output. The answer: a narrow band of MLP layers at the token position of the subject. ROME then edits facts by directly writing to those MLP weights.</p>
+<p><strong>Activation and path patching</strong> (Wang et al., 2022) generalized this into standard circuit-finding practice. <strong>Attribution patching (AtP*)</strong> (Kramár, Nanda et al., 2023) makes patching scale: approximate the patch effect with a first-order Taylor expansion — replace the expensive forward pass with a single backward pass gradient times the activation difference. AtP* is accurate enough to find circuits at GPT-4 scale without thousands of forward passes.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">lineage of causal intervention</text>
+  <line x1="170" y1="28" x2="170" y2="240" stroke="#ddd" stroke-width="1.5"/>
+  <circle cx="170" cy="46" r="5" fill="#0a0a0a"/>
+  <text x="178" y="44" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">Pearl 2001</text>
+  <text x="178" y="55" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">causal mediation, NDE/NIE</text>
+  <circle cx="170" cy="84" r="5" fill="#0a0a0a"/>
+  <text x="178" y="82" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">Vig et al. 2020</text>
+  <text x="178" y="93" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">mediation analysis → NLP bias</text>
+  <circle cx="170" cy="122" r="5" fill="#0a0a0a"/>
+  <text x="178" y="120" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">Meng et al. 2022  (ROME)</text>
+  <text x="178" y="131" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">causal tracing → factual recall</text>
+  <circle cx="170" cy="160" r="5" fill="#0a0a0a"/>
+  <text x="178" y="158" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">Wang et al. 2022</text>
+  <text x="178" y="169" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">path patching → IOI circuit</text>
+  <circle cx="170" cy="198" r="5" fill="#0a0a0a"/>
+  <text x="178" y="196" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">Kramár &amp; Nanda 2023  (AtP*)</text>
+  <text x="178" y="207" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">gradient × Δact → scalable approx</text>
+  <circle cx="170" cy="232" r="5" fill="#0a0a0a" opacity="0.4"/>
+  <text x="178" y="234" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">Geiger et al. → formal unification</text>
+  <text x="56" y="44" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="end">stats</text>
+  <text x="56" y="84" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="end">NLP</text>
+  <text x="56" y="122" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="end">LLM</text>
+  <text x="56" y="160" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="end">circuits</text>
+  <text x="56" y="198" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="end">scale</text>
+</svg>`
+      },
+
+      {
+        level: 'Core Concept',
+        title: 'Interchange interventions and the commutativity condition',
+        body: `<p>The formal setup: you have a high-level causal model H with variables {V₁, V₂, …} and a neural network N with activations {a₁, a₂, …}. An <strong>alignment</strong> is a function φ mapping each high-level variable Vᵢ to a subspace of N's activations — the claim that "this part of the network implements that variable."</p>
+<p>An <strong>interchange intervention</strong> (also called a counterfactual intervention) on N proceeds as follows. Run N on input α and input β. The intervention swaps into the forward pass on α the activation values that N would have produced on β — but only in the subspace φ(Vᵢ). This patches exactly the activations that supposedly carry Vᵢ, leaving everything else from the α computation intact. The intervention is the neural analogue of do(Vᵢ ← Vᵢ(β)) in H.</p>
+<p>The <strong>commutativity condition</strong>: the alignment φ is correct iff for all pairs (α, β) and all variables Vᵢ:</p>
+<p style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; margin:0.8rem 0; color:#333">N[do(φ(Vᵢ) ← φ(Vᵢ)(β))](α) = H[do(Vᵢ ← Vᵢ(β))](α)</p>
+<p>In words: doing the neural intervention produces the same output as doing the corresponding causal intervention in the high-level model. The diagram commutes. <strong>Interchange intervention accuracy (IIA)</strong> is the fraction of (α, β) pairs where this holds — a single number that operationalizes correctness. IIA = 1 means the network faithfully implements the algorithm under alignment φ. IIA = 0 means the alignment is wrong.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">the commutativity condition</text>
+  <rect x="20" y="34" width="100" height="36" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="70" y="53" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">H on input α</text>
+  <text x="70" y="64" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">high-level model</text>
+  <rect x="220" y="34" width="100" height="36" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="270" y="53" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">N on input α</text>
+  <text x="270" y="64" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">neural network</text>
+  <rect x="20" y="170" width="100" height="36" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="70" y="186" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">H[do(Vᵢ←Vᵢ(β))](α)</text>
+  <text x="70" y="198" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">causal intervention</text>
+  <rect x="220" y="170" width="100" height="36" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="270" y="186" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">N[do(φ(Vᵢ)←…)](α)</text>
+  <text x="270" y="198" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">neural intervention</text>
+  <path d="M70 70 L70 170" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cam2)"/>
+  <text x="42" y="124" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">do(Vᵢ←Vᵢ(β))</text>
+  <path d="M270 70 L270 170" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#cam2)"/>
+  <text x="274" y="124" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">patch φ(Vᵢ)</text>
+  <text x="274" y="135" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">from β run</text>
+  <path d="M120 52 L220 52" stroke="#888" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#cam2)"/>
+  <text x="170" y="46" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">alignment φ</text>
+  <path d="M120 188 L220 188" stroke="#0a0a0a" stroke-width="2" marker-end="url(#cam2)"/>
+  <text x="170" y="183" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">must be equal  ✓</text>
+  <rect x="60" y="228" width="220" height="20" rx="2" fill="#eeeeea" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="170" y="242" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">IIA = P(outputs match) over all (α, β) pairs</text>
+  <defs>
+    <marker id="cam2" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Mathematics',
+        title: 'DAS, AtP*, and why this absorbs superposition',
+        body: `<p><strong>Distributed Alignment Search (DAS)</strong> (Geiger et al., 2023) solves the alignment problem automatically. Rather than guessing which neurons implement variable Vᵢ, DAS parameterizes the alignment as a learned rotation R ∈ O(d) and optimizes IIA end-to-end. The intervention patches the subspace R·φ(Vᵢ) and the loss maximizes output agreement with H:</p>
+<div class="math-block">max_R  E_{α,β} [ 𝟙[N_R(α,β) = H(α,β)] ]</div>
+<p>where N_R(α,β) denotes N evaluated on α with the rotated subspace patched from β. Because R is unconstrained, the relevant variable can live in any distributed direction — not a single neuron or even a fixed axis. This neatly absorbs the superposition problem: even if a feature is encoded as a polysemantic direction that never aligns with a coordinate axis, DAS can find the rotation that isolates it.</p>
+<p><strong>Attribution patching (AtP*)</strong> makes the search scalable. The exact patch effect at node i is:</p>
+<div class="math-block">ΔL(i) = L(patch at i) − L(baseline) ≈ (∂L/∂aᵢ)|_{clean} · (aᵢ* − aᵢ)</div>
+<p>One backward pass on the clean input computes all partial derivatives simultaneously; multiplying by the activation differences gives approximate patch effects for every node in the graph. AtP* adds a correction term for the nonlinearity that makes the linear approximation tight enough to rank heads correctly in circuits the size of GPT-4. This is what makes causal abstraction practical rather than a theorem: a falsifiable claim about model structure that can actually be tested at the scale where the interesting models live.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">DAS: learn the alignment subspace</text>
+  <circle cx="90" cy="110" r="72" stroke="#0a0a0a" stroke-width="1" opacity="0.12"/>
+  <line x1="90" y1="110" x2="90" y2="38" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.3"/>
+  <line x1="90" y1="110" x2="162" y2="110" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.3"/>
+  <text x="94" y="36" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">n₀</text>
+  <text x="164" y="114" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">n₁</text>
+  <line x1="90" y1="110" x2="146" y2="53" stroke="#0a0a0a" stroke-width="2" marker-end="url(#dam)"/>
+  <line x1="90" y1="110" x2="34" y2="53" stroke="#0a0a0a" stroke-width="2" marker-end="url(#dam)"/>
+  <text x="150" y="50" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Rf₁</text>
+  <text x="18" y="50" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Rf₂</text>
+  <path d="M130 80 A 40 40 0 0 0 90 38" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" fill="none"/>
+  <text x="128" y="70" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">R</text>
+  <text x="90" y="196" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">feature direction not axis-aligned</text>
+  <text x="90" y="208" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">DAS rotation finds it</text>
+  <line x1="192" y1="24" x2="192" y2="250" stroke="#ddd" stroke-width="1"/>
+  <text x="266" y="38" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">AtP* approximation</text>
+  <rect x="202" y="46" width="128" height="46" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="266" y="64" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">ΔL(i) ≈</text>
+  <text x="266" y="78" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">(∂L/∂aᵢ)·(aᵢ*−aᵢ)</text>
+  <text x="266" y="110" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">1 backward pass</text>
+  <text x="266" y="122" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">scores all nodes</text>
+  <text x="266" y="134" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">simultaneously</text>
+  <rect x="202" y="152" width="128" height="60" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="266" y="168" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">IIA operationalizes</text>
+  <text x="266" y="182" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">correctness:</text>
+  <text x="266" y="198" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">IIA = 1 → faithful</text>
+  <text x="266" y="212" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">IIA = 0 → wrong</text>
+  <defs>
+    <marker id="dam" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      }
+    ]
+  },
+
+  // ── UNIVERSALITY ───────────────────────────────────────────────────────────
+  {
+    id: 'universality',
+    name: 'Universality',
+    fullName: 'Universality Hypothesis in Neural Networks',
+    tag: 'Mechanistic Interpretability',
+    tagline: 'Different models trained independently converge on the same features and circuits',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="8" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1.4" opacity="0.6"/>
+      <rect x="44" y="8" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1.4" opacity="0.6"/>
+      <rect x="6" y="42" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1.4" opacity="0.6"/>
+      <rect x="44" y="42" width="22" height="22" rx="2" stroke="currentColor" stroke-width="1.4" opacity="0.6"/>
+      <circle cx="17" cy="19" r="4" fill="currentColor" opacity="0.5"/>
+      <circle cx="55" cy="19" r="4" fill="currentColor" opacity="0.5"/>
+      <circle cx="17" cy="53" r="4" fill="currentColor" opacity="0.5"/>
+      <circle cx="55" cy="53" r="4" fill="currentColor" opacity="0.5"/>
+      <circle cx="36" cy="36" r="8" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.4"/>
+      <line x1="21" y1="22" x2="30" y2="30" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+      <line x1="51" y1="22" x2="42" y2="30" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+      <line x1="21" y1="50" x2="30" y2="42" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+      <line x1="51" y1="50" x2="42" y2="42" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+      <text x="36" y="40" font-family="monospace" font-size="8" fill="currentColor" text-anchor="middle">≅</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'The bet that makes interpretability a science',
+        body: `<p>Imagine a biologist who discovers the structure of a potassium channel in a squid neuron. Is that discovery only about squid? If ion channels are universal across animal nervous systems — and they largely are — then the squid result is knowledge about neurons in general, including human ones. Biology accumulated into a science because similar structures kept reappearing across wildly different organisms.</p>
+<p>The universality hypothesis (Olah et al., <em>Zoom In</em>, 2020) makes the same bet about neural networks: that models trained independently, on different data, with different architectures and random seeds, converge on the <strong>same features and circuits</strong>. If true, a circuit you validate in one model is not just a fact about that model — it is knowledge about the class of models.</p>
+<p>This is the load-bearing assumption for mechanistic interpretability as a cumulative science rather than a sequence of one-off autopsies. Without it, every new model is a fresh mystery. With it, a validated circuit is a reusable piece of understanding, findings transfer to systems you cannot directly inspect, and a periodic-table-style taxonomy of computational motifs becomes possible. The entire enterprise's generalizability hangs on whether this bet pays off.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">two independent training runs → same circuits?</text>
+  <rect x="14" y="28" width="130" height="90" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="79" y="46" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">Model A</text>
+  <text x="79" y="58" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">data: ImageNet</text>
+  <text x="79" y="70" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">arch: ResNet</text>
+  <text x="79" y="82" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">seed: 42</text>
+  <circle cx="48" cy="104" r="7" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <circle cx="68" cy="104" r="7" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <circle cx="88" cy="104" r="7" fill="#0a0a0a" opacity="0.6"/>
+  <circle cx="108" cy="104" r="7" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <rect x="196" y="28" width="130" height="90" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="#f8f8f6"/>
+  <text x="261" y="46" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" text-anchor="middle">Model B</text>
+  <text x="261" y="58" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">data: OpenImages</text>
+  <text x="261" y="70" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">arch: VGG</text>
+  <text x="261" y="82" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">seed: 99</text>
+  <circle cx="230" cy="104" r="7" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <circle cx="250" cy="104" r="7" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <circle cx="270" cy="104" r="7" fill="#0a0a0a" opacity="0.6"/>
+  <circle cx="290" cy="104" r="7" stroke="#0a0a0a" stroke-width="1.2" fill="none"/>
+  <path d="M144 80 C 164 80 176 80 196 80" stroke="#0a0a0a" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#unm)"/>
+  <text x="170" y="74" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">same feature?</text>
+  <rect x="60" y="148" width="220" height="90" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <text x="170" y="166" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">if universality holds</text>
+  <text x="78" y="184" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">→ validate in A, trust in B</text>
+  <text x="78" y="199" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">→ findings transfer to</text>
+  <text x="90" y="213" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">models you can't inspect</text>
+  <text x="78" y="228" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">→ taxonomy is possible</text>
+  <defs>
+    <marker id="unm" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Evidence',
+        title: 'Curve detectors, induction heads, and universal neurons',
+        body: `<p>The strongest evidence comes from three levels of the stack.</p>
+<p><strong>Low-level vision features</strong> (Olah et al., 2020): Gabor filters, color-opponent channels, and curve detectors appear in every convolutional network trained on natural images — InceptionV1, ResNets, VGGs — regardless of architecture or dataset. The curve detectors in particular are not just similar in function but form the same multi-neuron circuits, with the same predecessor features (frequency detectors) and successor features (shape detectors). The same motif, same wiring, across independently trained models.</p>
+<p><strong>Induction heads</strong> (Olsson et al., 2022): appear in every transformer trained long enough on token sequences, regardless of tokenization, dataset, or random seed. The two-head mechanism (previous-token head + induction head) reliably assembles from gradient descent. This is strong evidence that the training objective itself selects for this circuit, not any property of the specific training run.</p>
+<p><strong>Universal neurons</strong> (Gurnee et al., 2023): systematically searched GPT-2 small, medium, large, and XL for neurons with matching activation patterns across model sizes and seeds. Found a consistent set of "universal neurons" — including a notable linear representation of token position and a set of previous-token detectors — that appear across all scales. The same computational roles being filled by neurons in the same functional slot, despite completely independent training.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">evidence by level of abstraction</text>
+  <rect x="10" y="26" width="320" height="20" fill="#0a0a0a" rx="2"/>
+  <text x="18" y="40" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6">Finding</text>
+  <text x="190" y="40" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="middle">Models compared</text>
+  <text x="308" y="40" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="end">Strength</text>
+  <line x1="10" y1="46" x2="330" y2="46" stroke="#ccc" stroke-width="0.5"/>
+  <text x="18" y="60" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Gabor / curve detectors</text>
+  <text x="190" y="60" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">InceptionV1, VGG, ResNet</text>
+  <rect x="282" y="52" width="40" height="8" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="66" x2="330" y2="66" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="80" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Multimodal neurons</text>
+  <text x="190" y="80" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">InceptionV1, CLIP ViT</text>
+  <rect x="282" y="72" width="36" height="8" rx="1" fill="#0a0a0a" opacity="0.65"/>
+  <line x1="10" y1="86" x2="330" y2="86" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="100" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Induction heads</text>
+  <text x="190" y="100" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">all transformers studied</text>
+  <rect x="282" y="92" width="40" height="8" rx="1" fill="#0a0a0a" opacity="0.8"/>
+  <line x1="10" y1="106" x2="330" y2="106" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="120" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Universal neurons (pos, prev-tok)</text>
+  <text x="190" y="120" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">GPT-2 small → XL</text>
+  <rect x="282" y="112" width="32" height="8" rx="1" fill="#0a0a0a" opacity="0.55"/>
+  <line x1="10" y1="126" x2="330" y2="126" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="140" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Mid-level circuits (IOI etc.)</text>
+  <text x="190" y="140" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">limited cross-model checks</text>
+  <rect x="282" y="132" width="18" height="8" rx="1" fill="#0a0a0a" opacity="0.3"/>
+  <line x1="10" y1="146" x2="330" y2="146" stroke="#0a0a0a" stroke-width="0.8"/>
+  <text x="170" y="168" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">universality strongest at lowest abstraction level</text>
+  <rect x="10" y="180" width="320" height="68" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="20" y="198" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">why low-level is robust:</text>
+  <text x="20" y="214" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">natural image statistics constrain what detectors are useful</text>
+  <text x="20" y="230" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a">→ any model solving the task must learn similar primitives</text>
+  <text x="20" y="244" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">mid-level: many valid implementations → less constrained</text>
+</svg>`
+      },
+
+      {
+        level: 'Why It Matters',
+        title: 'The periodic table analogy and what universality enables',
+        body: `<p>The analogy Olah et al. draw is to the periodic table. Mendeleev did not need to synthesize every possible substance to understand chemistry — he identified recurring elemental motifs and their organizational structure, and that taxonomy made chemistry cumulative. New elements slotted into the table; predictions followed from position.</p>
+<p>Universality promises the same for neural computation. If curve detectors are a stable, recurring element of vision models, you need to understand them once. When a new architecture appears, you can ask: does it use the curve detector circuit? In what layers? How does it connect to the next level? You build knowledge, not just descriptions.</p>
+<p>The practical consequence is the possibility of <strong>transfer to uninspectable models</strong>. The systems that matter most for safety — large frontier models — are expensive to study directly. If circuits found in smaller, accessible models transfer, then interpretability findings on GPT-2 are not merely academic; they are evidence about GPT-4. Universality is what makes the small-model workbench scientifically legitimate.</p>
+<p>It also makes causal abstraction (the previous pillar) more powerful. If the same high-level algorithm recurs across models, then validating a causal abstraction in one is evidence the abstraction is not just a post-hoc fit to one model's quirks — it is a description of a stable computational motif the training process reliably discovers.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">periodic table of neural motifs</text>
+  <rect x="10" y="26" width="44" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.08"/>
+  <text x="32" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">Gabor</text>
+  <text x="32" y="48" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">filter</text>
+  <rect x="58" y="26" width="44" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.08"/>
+  <text x="80" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">curve</text>
+  <text x="80" y="48" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">detector</text>
+  <rect x="106" y="26" width="44" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.08"/>
+  <text x="128" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">color</text>
+  <text x="128" y="48" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">opponent</text>
+  <rect x="154" y="26" width="44" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.08"/>
+  <text x="176" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">induct.</text>
+  <text x="176" y="48" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">head</text>
+  <rect x="202" y="26" width="44" height="28" rx="2" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.08"/>
+  <text x="224" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">prev-tok</text>
+  <text x="224" y="48" font-family="'JetBrains Mono',monospace" font-size="6" fill="#888" text-anchor="middle">head</text>
+  <rect x="250" y="26" width="44" height="28" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" fill="none" opacity="0.5"/>
+  <text x="272" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">?</text>
+  <rect x="298" y="26" width="32" height="28" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="4 2" fill="none" opacity="0.4"/>
+  <text x="314" y="38" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">?</text>
+  <text x="10" y="80" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">vision primitives</text>
+  <text x="154" y="80" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">language</text>
+  <text x="250" y="80" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">unknown</text>
+  <line x1="10" y1="88" x2="330" y2="88" stroke="#ddd" stroke-width="1"/>
+  <text x="170" y="108" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">what universality enables</text>
+  <rect x="14" y="118" width="148" height="54" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="88" y="134" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">validate once</text>
+  <text x="88" y="148" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">findings in model A</text>
+  <text x="88" y="162" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">apply to model B</text>
+  <rect x="178" y="118" width="148" height="54" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="252" y="134" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">small → large</text>
+  <text x="252" y="148" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">GPT-2 circuits inform</text>
+  <text x="252" y="162" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">frontier model analysis</text>
+  <rect x="14" y="182" width="312" height="62" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="200" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">without universality: each model is a fresh autopsy</text>
+  <text x="170" y="216" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">with universality: interpretability is cumulative science</text>
+  <text x="170" y="236" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">same bet biology made with ion channels across species</text>
+</svg>`
+      },
+
+      {
+        level: 'Honest Assessment',
+        title: 'Where it holds, where it is murky, and the feature-splitting problem',
+        body: `<p>The honest picture is a gradient, not a binary. Universality is <strong>robust at low abstraction levels</strong>: basic feature detectors (Gabor, color channels, curve detectors) and simple attention motifs (induction heads, previous-token heads) appear reliably across architectures, datasets, and scales. The constraint here is the data distribution itself — any network solving the same task on natural images faces the same statistical regularities, so convergence on similar primitives is almost forced.</p>
+<p>At <strong>mid-level computation</strong> the evidence is murkier. The IOI circuit (Wang et al.) was validated in GPT-2 Medium but has not been systematically checked across models of different sizes. There are many valid ways to implement a given mid-level computation; the training process may settle on different implementations in different runs. Functional universality (same input-output behavior) may hold while structural universality (same circuit wiring) does not.</p>
+<p>The <strong>feature-splitting problem</strong> in SAEs creates a deeper conceptual difficulty. As dictionary size N grows, coarse features split into finer sub-features — "dog" becomes "small dog", "large dog", "dog in ownership context". Which level of granularity is the "true" feature? If there is no canonical level, "the same feature appearing in two models" may not be a well-defined claim. Universality requires a stable unit of comparison, and feature-splitting challenges whether that unit exists.</p>
+<p>Despite these caveats, the hypothesis remains the organizing bet of the field. The correct response to partial evidence is not to abandon the bet but to test it more carefully: cross-model activation similarity metrics, systematic SAE feature matching across model families, and scaling studies that check whether circuits identified in small models persist as the identical subgraph at larger scale.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">universality confidence by abstraction level</text>
+  <line x1="40" y1="200" x2="300" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="200" x2="40" y2="30" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="170" y="220" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">abstraction level  →  higher</text>
+  <text x="16" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" transform="rotate(-90 16 118)">confidence</text>
+  <line x1="36" y1="52" x2="44" y2="52" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="6" y="55" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">high</text>
+  <line x1="36" y1="200" x2="44" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="6" y="203" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">low</text>
+  <path d="M50,56 C90,58 130,90 190,142 S260,185 296,198" stroke="#0a0a0a" stroke-width="2.5" fill="none"/>
+  <rect x="46" y="44" width="82" height="30" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" fill="#eeeeea" opacity="0.8"/>
+  <text x="87" y="58" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">Gabors, curves,</text>
+  <text x="87" y="69" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">induction heads</text>
+  <rect x="148" y="112" width="74" height="30" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" fill="#eeeeea" opacity="0.8"/>
+  <text x="185" y="126" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">mid-level</text>
+  <text x="185" y="137" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">circuits</text>
+  <rect x="240" y="162" width="56" height="30" rx="2" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" fill="#eeeeea" opacity="0.8"/>
+  <text x="268" y="176" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">high-level</text>
+  <text x="268" y="187" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">behavior</text>
+  <rect x="10" y="232" width="320" height="22" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="247" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">feature splitting: no canonical granularity → "same feature" may not be well-defined</text>
+</svg>`
+      }
+    ]
+  },
+
+  // ── DEVELOPMENTAL INTERPRETABILITY ────────────────────────────────────────
+  {
+    id: 'developmental-interp',
+    name: 'Developmental Interp',
+    fullName: 'Developmental Interpretability & Singular Learning Theory',
+    tag: 'Mechanistic Interpretability',
+    tagline: 'Studying how structure forms over training, not just what the finished weights contain',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="10" y1="58" x2="62" y2="58" stroke="currentColor" stroke-width="1.2" opacity="0.4"/>
+      <circle cx="14" cy="54" r="3" fill="currentColor" opacity="0.2"/>
+      <circle cx="26" cy="48" r="3" fill="currentColor" opacity="0.3"/>
+      <circle cx="38" cy="44" r="3" fill="currentColor" opacity="0.4"/>
+      <circle cx="46" cy="30" r="4" fill="currentColor" opacity="0.7"/>
+      <circle cx="58" cy="18" r="5" fill="currentColor" opacity="0.9"/>
+      <path d="M14 54 C 26 52 36 46 44 32 S 54 20 58 18" stroke="currentColor" stroke-width="1.5" fill="none" stroke-dasharray="3 2"/>
+      <line x1="46" y1="30" x2="46" y2="58" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" opacity="0.4"/>
+      <text x="42" y="68" font-family="monospace" font-size="6" fill="currentColor" text-anchor="middle">phase transition</text>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Anatomy versus embryology',
+        body: `<p>The five preceding pillars all share a tacit assumption: they study the <em>finished</em> model. You take a trained network, dissect its weights, locate circuits, validate them causally. This is anatomy — valuable, but it asks only "what is the structure?" not "how did the structure get here?"</p>
+<p>Developmental interpretability asks the embryological question: <strong>when and how does computational structure form during training?</strong> Rather than a single snapshot of the final weights, the object of study is the trajectory — the sequence of checkpoints from random initialization to convergence — and the transitions along it.</p>
+<p>This is not just a different methodology; it is a different scientific stance that may answer questions anatomy cannot. A circuit found in the final model is a fait accompli. Watching it form tells you something anatomy cannot: which circuits are prerequisites for others, whether structure forms continuously or in discrete phase transitions, and whether the model passes through interpretable intermediate states that could be monitored or redirected during training. For safety, the embryological question may ultimately be more important than the anatomical one — you want to intervene while the model is developing, not after.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">two stances on the same object</text>
+  <rect x="14" y="28" width="142" height="110" rx="3" stroke="#0a0a0a" stroke-width="1.5" fill="#eeeeea"/>
+  <text x="85" y="48" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">anatomy</text>
+  <text x="85" y="62" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">dissect finished weights</text>
+  <circle cx="85" cy="100" r="26" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+  <line x1="85" y1="100" x2="104" y2="80" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#dim)"/>
+  <line x1="85" y1="100" x2="65" y2="80" stroke="#0a0a0a" stroke-width="1.5" marker-end="url(#dim)"/>
+  <line x1="85" y1="100" x2="108" y2="110" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#dim)"/>
+  <text x="85" y="128" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">what is the structure?</text>
+  <rect x="184" y="28" width="142" height="110" rx="3" stroke="#0a0a0a" stroke-width="2" fill="#f8f8f6"/>
+  <text x="255" y="48" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" text-anchor="middle">embryology</text>
+  <text x="255" y="62" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">watch structure form</text>
+  <circle cx="210" cy="100" r="8" stroke="#0a0a0a" stroke-width="1" fill="none" opacity="0.3"/>
+  <circle cx="234" cy="100" r="8" stroke="#0a0a0a" stroke-width="1" fill="none" opacity="0.5"/>
+  <circle cx="258" cy="100" r="8" stroke="#0a0a0a" stroke-width="1.2" fill="#0a0a0a" opacity="0.15"/>
+  <circle cx="282" cy="100" r="12" stroke="#0a0a0a" stroke-width="1.5" fill="#0a0a0a" opacity="0.2"/>
+  <line x1="218" y1="100" x2="226" y2="100" stroke="#0a0a0a" stroke-width="1" marker-end="url(#dim)"/>
+  <line x1="242" y1="100" x2="250" y2="100" stroke="#0a0a0a" stroke-width="1" marker-end="url(#dim)"/>
+  <line x1="266" y1="100" x2="270" y2="100" stroke="#0a0a0a" stroke-width="1" marker-end="url(#dim)"/>
+  <text x="255" y="128" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a" text-anchor="middle">how does it get here?</text>
+  <rect x="14" y="156" width="312" height="90" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="170" y="174" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">why embryology may matter more for safety</text>
+  <text x="24" y="192" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ which circuits are prerequisites for others?</text>
+  <text x="24" y="207" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ does the model pass through dangerous intermediate states?</text>
+  <text x="24" y="222" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ can we intervene during development rather than post-hoc?</text>
+  <text x="24" y="237" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ training as the natural moment to reshape structure</text>
+  <defs>
+    <marker id="dim" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+      <path d="M0,0 L0,5 L6,2.5 z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+
+      {
+        level: 'Grokking',
+        title: 'Phase transitions and progress measures',
+        body: `<p><strong>Grokking</strong> (Power et al., 2022) is the phenomenon where a small transformer trained on modular arithmetic achieves near-zero training loss early in training but only generalizes — reaches near-zero test loss — much later, after what appears to be a sudden phase transition. The model memorizes, then something snaps, and it generalizes. This discontinuity is the first strong empirical signal that training dynamics are not smooth and that structure can emerge abruptly.</p>
+<p>Nanda et al. (2023) reverse-engineered the grokking transformer and identified its <strong>progress measures</strong> — internal metrics that track the formation of the underlying Fourier circuit independently of the training and test losses that made the transition look sudden. The key finding: generalization is not sudden at the level of internal representations. The Fourier circuit forms gradually and continuously; what looks like a phase transition in loss space is the consequence of a long, smooth process of circuit formation that loss metrics simply do not reveal until a threshold is crossed.</p>
+<p>This establishes the central methodological principle of developmental interpretability: <strong>loss is a poor probe of structure formation</strong>. You need interpretability-aware metrics — progress measures that directly track the formation of circuits — to understand what the model is actually learning during training.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">grokking: what loss hides</text>
+  <line x1="40" y1="200" x2="300" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="200" x2="40" y2="26" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="170" y="218" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">training steps  →</text>
+  <text x="16" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" transform="rotate(-90 16 118)">loss / metric</text>
+  <path d="M50,40 C70,42 100,44 160,46 S240,48 290,50" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+  <text x="292" y="48" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">train loss</text>
+  <path d="M50,195 C70,194 100,192 140,188 S175,130 180,80 S200,46 290,44" stroke="#0a0a0a" stroke-width="1.5" stroke-dasharray="5 3" fill="none"/>
+  <text x="292" y="62" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">test loss</text>
+  <path d="M50,192 C80,185 110,160 140,120 S170,72 200,56 S250,44 290,42" stroke="#888" stroke-width="1.2" stroke-dasharray="3 2" fill="none"/>
+  <text x="292" y="76" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">progress</text>
+  <text x="292" y="87" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">measure</text>
+  <line x1="178" y1="30" x2="178" y2="200" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.4"/>
+  <text x="180" y="112" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">apparent</text>
+  <text x="180" y="123" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">transition</text>
+  <rect x="14" y="228" width="312" height="24" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="244" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">circuit forms gradually — loss jump is a threshold artifact, not the transition itself</text>
+</svg>`
+      },
+
+      {
+        level: 'Singular Learning Theory',
+        title: 'The LLC as an order parameter for structure',
+        body: `<p><strong>Singular learning theory</strong> (Watanabe, 2009) is the statistical learning theory of models where the Fisher information matrix is degenerate — which describes essentially all neural networks. Classical learning theory assumes the true parameter is identifiable (the Hessian of the KL divergence is positive definite at the optimum). Neural networks violate this: many parameter configurations produce the same function, creating a degenerate loss landscape with flat directions and singular points.</p>
+<p>The key quantity is the <strong>real log canonical threshold (RLCT)</strong>, often written λ, which replaces the parameter count in the model-complexity term of the Bayesian information criterion. It measures the effective dimensionality of the singular structure near a local minimum — roughly, how many directions in parameter space actually affect the loss locally. Watanabe showed that the free energy of a Bayesian model satisfies:</p>
+<div class="math-block">F_n = nL_n + λ log n − (m−1) log log n + O_p(1)</div>
+<p>where n is sample size, L_n is the training loss, and m is the multiplicity of the singularity. The RLCT λ is an intrinsic geometric property of the loss landscape at a given point.</p>
+<p>The <strong>Timaeus group</strong> (Hoogland, Murfet et al.) operationalizes this as the <strong>local learning coefficient (LLC)</strong>, estimated from the curvature of the loss landscape around a checkpoint via SGLD sampling. The claim: as training progresses, the LLC at the current checkpoint undergoes detectable transitions that correspond to the formation of new circuits. LLC drops when the model discovers a new structure that flattens the loss landscape locally — it is an order parameter for phase transitions in the developmental sense.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">local learning coefficient over training</text>
+  <line x1="40" y1="200" x2="300" y2="200" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="40" y1="200" x2="40" y2="30" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="170" y="218" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">training steps  →</text>
+  <text x="16" y="118" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888" transform="rotate(-90 16 118)">LLC  λ̂</text>
+  <path d="M50,60 C60,60 75,60 85,60 S88,100 95,100 S108,100 118,100 S122,145 130,145 S148,145 160,145 S164,175 172,175 S200,175 290,175" stroke="#0a0a0a" stroke-width="2.5" fill="none"/>
+  <line x1="85" y1="30" x2="85" y2="200" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.4"/>
+  <line x1="118" y1="30" x2="118" y2="200" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.4"/>
+  <line x1="160" y1="30" x2="160" y2="200" stroke="#0a0a0a" stroke-width="1" stroke-dasharray="3 2" opacity="0.4"/>
+  <text x="85" y="28" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">circuit 1</text>
+  <text x="85" y="36" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">forms</text>
+  <text x="118" y="28" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">circuit 2</text>
+  <text x="118" y="36" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">forms</text>
+  <text x="160" y="28" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">circuit 3</text>
+  <text x="160" y="36" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#0a0a0a" text-anchor="middle">forms</text>
+  <text x="36" y="63" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">high</text>
+  <text x="36" y="178" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">low</text>
+  <rect x="14" y="228" width="312" height="24" rx="2" stroke="#0a0a0a" stroke-width="1" fill="#eeeeea"/>
+  <text x="170" y="244" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">LLC drop = model found new structure, flattening loss landscape locally</text>
+</svg>`
+      },
+
+      {
+        level: 'Research Program',
+        title: 'What is established, what is open, and what it would mean if it works',
+        body: `<p><strong>What is established.</strong> Grokking is real and reproducible. Progress measures can track circuit formation in small toy models more faithfully than loss alone. The RLCT is a mathematically rigorous quantity with a well-developed theory (Watanabe's WBIC estimator, the free energy formula). The LLC can be estimated numerically via stochastic gradient MCMC (SGLD) and produces interpretable signals in small models — Hoogland et al. have shown LLC transitions in toy models that correspond to identifiable phase changes.</p>
+<p><strong>What is open.</strong> Scaling to frontier models is unproven. SGLD-based LLC estimation is expensive and noisy; whether it remains interpretable in billion-parameter models with complex loss landscapes is unknown. The correspondence between LLC drops and specific named circuits is hand-verified in small cases — there is no systematic method yet for automatically identifying what structure formed at a given transition. SLT was developed for Bayesian inference over a fixed data distribution, not stochastic gradient descent with learning rate schedules, data augmentation, and Adam; the theory's assumptions are strained by modern training.</p>
+<p><strong>What it would mean if it works.</strong> If LLC or a successor reliably detects structure formation in large models during training, it becomes a monitoring tool with safety implications: detect when a model acquires a new capability, characterize whether the capability corresponds to a known circuit type, and potentially intervene before training completes. Developmental interpretability would shift the field from retrospective analysis to prospective oversight — watching a model grow rather than performing a post-mortem.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="170" y="14" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#888" text-anchor="middle">maturity map</text>
+  <rect x="10" y="26" width="320" height="20" fill="#0a0a0a" rx="2"/>
+  <text x="18" y="40" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6">Claim</text>
+  <text x="240" y="40" font-family="'JetBrains Mono',monospace" font-size="7" fill="#f8f8f6" text-anchor="middle">Status</text>
+  <line x1="10" y1="46" x2="330" y2="46" stroke="#ccc" stroke-width="0.5"/>
+  <text x="18" y="60" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Grokking is real</text>
+  <rect x="190" y="52" width="132" height="8" rx="1" fill="#0a0a0a" opacity="0.75"/>
+  <line x1="10" y1="66" x2="330" y2="66" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="80" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">Progress measures track circuits (toy)</text>
+  <rect x="190" y="72" width="110" height="8" rx="1" fill="#0a0a0a" opacity="0.65"/>
+  <line x1="10" y1="86" x2="330" y2="86" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="100" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">SLT / RLCT mathematically rigorous</text>
+  <rect x="190" y="92" width="120" height="8" rx="1" fill="#0a0a0a" opacity="0.7"/>
+  <line x1="10" y1="106" x2="330" y2="106" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="120" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">LLC detects transitions (toy models)</text>
+  <rect x="190" y="112" width="80" height="8" rx="1" fill="#0a0a0a" opacity="0.5"/>
+  <line x1="10" y1="126" x2="330" y2="126" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="140" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">LLC scales to frontier models</text>
+  <rect x="190" y="132" width="22" height="8" rx="1" fill="#0a0a0a" opacity="0.2"/>
+  <line x1="10" y1="146" x2="330" y2="146" stroke="#eee" stroke-width="0.5"/>
+  <text x="18" y="160" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">Automatic circuit ID at transitions</text>
+  <rect x="190" y="152" width="10" height="8" rx="1" fill="#0a0a0a" opacity="0.15"/>
+  <line x1="10" y1="166" x2="330" y2="166" stroke="#0a0a0a" stroke-width="0.8"/>
+  <rect x="10" y="178" width="320" height="72" rx="2" stroke="#0a0a0a" stroke-width="1" fill="none"/>
+  <text x="170" y="194" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#0a0a0a" text-anchor="middle">if it works at scale</text>
+  <text x="20" y="212" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ detect capability acquisition during training</text>
+  <text x="20" y="227" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ prospective oversight, not retrospective autopsy</text>
+  <text x="20" y="242" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">→ intervene before training completes</text>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
