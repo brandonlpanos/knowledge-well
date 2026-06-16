@@ -3131,6 +3131,190 @@ L_KoLeo = −(1/n) Σᵢ log d_nn(z_i / ‖z_i‖)</div>
     ]
   },
 
+  // ── NORMALIZING FLOWS ─────────────────────────────────────────────────────
+  {
+    id: 'normalizing-flows',
+    name: 'Normalizing Flows',
+    fullName: 'Normalizing Flows',
+    tag: 'Generative Models',
+    tagline: 'Exact likelihood via invertible transformations',
+
+    icon: `<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="16" cy="36" rx="9" ry="18" stroke="currentColor" stroke-width="1.5"/>
+      <text x="10" y="39" font-family="monospace" font-size="6" fill="currentColor">z</text>
+      <ellipse cx="56" cy="36" rx="9" ry="18" stroke="currentColor" stroke-width="1.5"/>
+      <text x="50" y="39" font-family="monospace" font-size="6" fill="currentColor">x</text>
+      <path d="M25 30 Q36 24 47 30" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M47 42 Q36 48 25 42" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="3 2"/>
+      <text x="28" y="24" font-family="monospace" font-size="5.5" fill="currentColor">f</text>
+      <text x="28" y="52" font-family="monospace" font-size="5.5" fill="currentColor">f⁻¹</text>
+      <defs>
+        <marker id="arr" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+          <path d="M0,0 L5,2.5 L0,5" fill="none" stroke="currentColor" stroke-width="1"/>
+        </marker>
+      </defs>
+    </svg>`,
+
+    layers: [
+      {
+        level: 'Intuition',
+        title: 'Reshaping probability like clay',
+        body: `<p>Imagine starting with a simple lump of clay — a Gaussian blob of probability mass — and squeezing, stretching, and bending it through a series of invertible operations until it matches the complicated shape of real data.</p>
+<p>That is the core idea of normalizing flows. Each transformation is carefully designed to be <strong>bijective</strong> (one-to-one and onto), so you can always go backwards from data to the simple distribution. Because of this invertibility, you can compute the <strong>exact likelihood</strong> of any data point — something VAEs and GANs cannot do directly.</p>
+<p>The name comes from the two effects: <em>normalizing</em> — transforming toward a normal (Gaussian) base distribution — and <em>flow</em> — passing the density through a chain of steps.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base distribution -->
+  <ellipse cx="60" cy="130" rx="40" ry="70" stroke="#0a0a0a" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.4"/>
+  <text x="40" y="215" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">z ~ N(0,I)</text>
+  <!-- Arrows -->
+  <path d="M105 100 Q170 80 225 90" stroke="#0a0a0a" stroke-width="1.2" fill="none" marker-end="url(#a1)"/>
+  <path d="M225 170 Q170 185 105 170" stroke="#0a0a0a" stroke-width="1" fill="none" stroke-dasharray="3 2" opacity="0.5"/>
+  <text x="145" y="76" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">f = fₖ∘…∘f₁</text>
+  <text x="130" y="192" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">f⁻¹</text>
+  <!-- Data distribution (warped) -->
+  <path d="M270 75 Q310 100 308 130 Q310 165 270 185 Q240 175 238 150 Q230 130 238 110 Q240 85 270 75Z"
+        stroke="#0a0a0a" stroke-width="1.2" opacity="0.6" fill="none"/>
+  <text x="246" y="215" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">x ~ p(x)</text>
+  <!-- Intermediate blobs -->
+  <ellipse cx="170" cy="130" rx="28" ry="50" stroke="#0a0a0a" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.3"/>
+  <text x="152" y="193" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">zₜ</text>
+  <defs>
+    <marker id="a1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6" fill="none" stroke="#0a0a0a" stroke-width="1"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+      {
+        level: 'Core Mechanism',
+        title: 'The change-of-variables formula',
+        body: `<p>When you push a random variable <strong>z</strong> through an invertible function <strong>f</strong> to get <strong>x = f(z)</strong>, the densities are related by the change-of-variables formula:</p>
+<div class="math-block">log p(x) = log p_z(f⁻¹(x)) + log |det J_{f⁻¹}(x)|</div>
+<p>The <strong>Jacobian determinant</strong> term accounts for how much the transformation stretches or squeezes volume. If <em>f</em> expands a region, probability mass spreads out there (density goes down); if it compresses, density goes up.</p>
+<p>A flow is a composition of <em>K</em> such steps. Each step contributes its own log-Jacobian, and the total log-likelihood is the sum across all steps plus the base log-density:</p>
+<div class="math-block">log p(x) = log p_z(z₀) + Σₖ log |det Jₖ|</div>
+<p>The design challenge is choosing transformations that are (1) expressive enough to model real data, and (2) cheap enough that the Jacobian determinant can be computed efficiently — ideally in O(D) rather than O(D³).</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Chain of transformations -->
+  <rect x="10" y="108" width="44" height="28" rx="3" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="14" y="126" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">z ~ N</text>
+  <path d="M54 122 L78 122" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#b1)"/>
+  <rect x="80" y="108" width="36" height="28" rx="3" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="87" y="126" font-family="'JetBrains Mono',monospace" font-size="9" fill="#0a0a0a">f₁</text>
+  <path d="M116 122 L140 122" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#b1)"/>
+  <rect x="142" y="108" width="36" height="28" rx="3" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="149" y="126" font-family="'JetBrains Mono',monospace" font-size="9" fill="#0a0a0a">f₂</text>
+  <path d="M178 122 L202 122" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#b1)"/>
+  <text x="204" y="126" font-family="'JetBrains Mono',monospace" font-size="10" fill="#888">…</text>
+  <path d="M220 122 L244 122" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#b1)"/>
+  <rect x="246" y="108" width="36" height="28" rx="3" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="253" y="126" font-family="'JetBrains Mono',monospace" font-size="9" fill="#0a0a0a">fₖ</text>
+  <path d="M282 122 L306 122" stroke="#0a0a0a" stroke-width="1.2" marker-end="url(#b1)"/>
+  <rect x="308" y="108" width="22" height="28" rx="3" stroke="#0a0a0a" stroke-width="1.2"/>
+  <text x="311" y="126" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">x</text>
+  <!-- Jacobian labels below -->
+  <text x="72" y="152" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">|J₁|</text>
+  <text x="140" y="152" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">|J₂|</text>
+  <text x="264" y="152" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888" text-anchor="middle">|Jₖ|</text>
+  <!-- Formula -->
+  <text x="20" y="185" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">log p(x) = log p_z(z) + Σ log|Jₖ|</text>
+  <defs>
+    <marker id="b1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6" fill="none" stroke="#0a0a0a" stroke-width="1"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+      {
+        level: 'Architecture',
+        title: 'Key flow families',
+        body: `<p>Three families of flows cover most practical uses, each with a different strategy for keeping the Jacobian tractable:</p>
+<p><strong>Coupling flows (RealNVP, Glow):</strong> Split the input into two halves. Pass one half unchanged; transform the other using an arbitrary neural network conditioned on the first. Because the Jacobian is triangular, its determinant is just the product of diagonal entries — O(D) cost. Stacking with alternating splits expresses complex dependencies.</p>
+<p><strong>Autoregressive flows (MAF, IAF):</strong> Each dimension is conditioned on all previous ones, yielding a triangular Jacobian naturally. Masked Autoregressive Flow (MAF) is fast to evaluate but slow to sample; Inverse Autoregressive Flow (IAF) is the mirror: fast to sample, slow to evaluate. Parallel WaveNet uses IAF for real-time audio synthesis.</p>
+<p><strong>Continuous flows (Neural ODEs, FFJORD):</strong> Instead of discrete steps, define a continuous-time ODE for the transformation. The log-Jacobian becomes the trace of the Jacobian (via Liouville's theorem), which can be estimated cheaply with Hutchinson's trace estimator. More flexible geometry at higher compute cost.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Three rows -->
+  <!-- Row 1: Coupling -->
+  <text x="10" y="30" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" font-weight="bold">Coupling (RealNVP)</text>
+  <rect x="10" y="38" width="30" height="18" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="14" y="51" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">x₁</text>
+  <line x1="40" y1="47" x2="80" y2="47" stroke="#0a0a0a" stroke-width="1"/>
+  <rect x="10" y="62" width="30" height="18" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="14" y="75" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">x₂</text>
+  <rect x="80" y="38" width="50" height="42" rx="2" stroke="#0a0a0a" stroke-width="1"/>
+  <text x="88" y="63" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">NN(x₁)</text>
+  <line x1="40" y1="71" x2="80" y2="71" stroke="#0a0a0a" stroke-width="1"/>
+  <line x1="130" y1="59" x2="160" y2="59" stroke="#0a0a0a" stroke-width="1" marker-end="url(#c1)"/>
+  <text x="163" y="63" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">y₂=x₂⊙s+t</text>
+  <text x="260" y="63" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">J triangular</text>
+  <!-- Row 2: Autoregressive -->
+  <text x="10" y="115" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" font-weight="bold">Autoregressive (MAF)</text>
+  <text x="10" y="132" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">yᵢ = xᵢ · exp(αᵢ) + μᵢ,  αᵢ,μᵢ = NN(x₁..xᵢ₋₁)</text>
+  <rect x="10" y="140" width="220" height="20" rx="2" stroke="#0a0a0a" stroke-width="0.8" fill="none"/>
+  <line x1="10" y1="150" x2="230" y2="150" stroke="#0a0a0a" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.3"/>
+  <text x="14" y="155" font-family="'JetBrains Mono',monospace" font-size="6.5" fill="#888">y₁  y₂  y₃  …  yD</text>
+  <text x="240" y="155" font-family="'JetBrains Mono',monospace" font-size="7" fill="#0a0a0a">J lower-tri</text>
+  <!-- Row 3: Continuous -->
+  <text x="10" y="196" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#0a0a0a" font-weight="bold">Continuous (FFJORD)</text>
+  <text x="10" y="212" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">dz/dt = f(z,t)   d log p/dt = −Tr(∂f/∂z)</text>
+  <path d="M15 230 Q80 220 160 235 Q240 248 325 228" stroke="#0a0a0a" stroke-width="1.2" fill="none" opacity="0.7"/>
+  <text x="10" y="252" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">t=0 (z)  ───────────────────────────▶  t=1 (x)</text>
+  <defs>
+    <marker id="c1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6" fill="none" stroke="#0a0a0a" stroke-width="1"/>
+    </marker>
+  </defs>
+</svg>`
+      },
+      {
+        level: 'Mathematics',
+        title: 'Deriving the training objective',
+        body: `<p>Training maximizes the exact log-likelihood over the dataset. For a single sample <strong>x</strong> with <strong>z = f⁻¹(x)</strong>:</p>
+<div class="math-block">log p_X(x) = log p_Z(z) + log |det(∂z/∂x)|</div>
+<p>Expanding the chain of K invertible layers <em>f = f_K ∘ … ∘ f_1</em>, with <em>z_0 = z</em> and <em>z_K = x</em>:</p>
+<div class="math-block">log p_X(x) = log p_Z(z_0) − Σₖ₌₁ᴷ log |det(∂z_k/∂z_{k-1})|</div>
+<p>The sign flips because we integrate from data back to the base distribution. For coupling layers the Jacobian is block-triangular, so the determinant is just the product of the diagonal, and the log-det is a sum of element-wise log-scale values — O(D) computation.</p>
+<p>For continuous flows (FFJORD) the instantaneous change in log-density follows <strong>Liouville's equation</strong>:</p>
+<div class="math-block">d log p(z(t))/dt = −Tr(∂f/∂z(t))</div>
+<p>Because computing the full trace is O(D²), FFJORD uses the <strong>Hutchinson trace estimator</strong>: sample a random vector <em>ε</em> and estimate Tr(J) ≈ εᵀJε in a single JVP, reducing cost to O(D).</p>
+<p>Unlike VAEs (lower bound on likelihood) or GANs (no likelihood at all), flows give the <em>exact</em> likelihood — enabling direct model comparison, anomaly scoring, and well-calibrated density estimation.</p>`,
+        img: `<svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Comparison table -->
+  <rect x="10" y="10" width="320" height="20" rx="2" fill="#0a0a0a" opacity="0.06"/>
+  <text x="20" y="24" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Model</text>
+  <text x="100" y="24" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Exact p(x)</text>
+  <text x="190" y="24" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Fast sample</text>
+  <text x="280" y="24" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Latent</text>
+  <line x1="10" y1="32" x2="330" y2="32" stroke="#0a0a0a" stroke-width="0.5" opacity="0.3"/>
+  <text x="20" y="48" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">VAE</text>
+  <text x="100" y="48" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">ELBO only</text>
+  <text x="190" y="48" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">✓</text>
+  <text x="280" y="48" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">✓</text>
+  <text x="20" y="66" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">GAN</text>
+  <text x="100" y="66" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">✗</text>
+  <text x="190" y="66" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">✓</text>
+  <text x="280" y="66" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">implicit</text>
+  <text x="20" y="84" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" font-weight="bold">Flow</text>
+  <text x="100" y="84" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a" font-weight="bold">✓ exact</text>
+  <text x="190" y="84" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">✓</text>
+  <text x="280" y="84" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">✓</text>
+  <line x1="10" y1="92" x2="330" y2="92" stroke="#0a0a0a" stroke-width="0.5" opacity="0.3"/>
+  <!-- Hutchinson estimator box -->
+  <rect x="10" y="102" width="320" height="60" rx="3" stroke="#0a0a0a" stroke-width="1" fill="none" opacity="0.5"/>
+  <text x="20" y="118" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Hutchinson trace estimator</text>
+  <text x="20" y="134" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">Tr(J) ≈ E[εᵀJε],  ε ~ N(0,I)</text>
+  <text x="20" y="150" font-family="'JetBrains Mono',monospace" font-size="8" fill="#888">single JVP per sample → O(D) cost</text>
+  <!-- Loss -->
+  <rect x="10" y="174" width="320" height="76" rx="3" stroke="#0a0a0a" stroke-width="1" fill="none" opacity="0.4"/>
+  <text x="20" y="190" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">Training loss (NLL):</text>
+  <text x="20" y="208" font-family="'JetBrains Mono',monospace" font-size="8" fill="#0a0a0a">L = −(1/N) Σᵢ log p_X(xᵢ)</text>
+  <text x="20" y="226" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="#888">= −(1/N) Σᵢ [log p_Z(zᵢ) + Σₖ log|det Jₖ|]</text>
+  <text x="20" y="242" font-family="'JetBrains Mono',monospace" font-size="7" fill="#888">no reconstruction loss, no adversary — pure MLE</text>
+</svg>`
+      }
+    ]
+  },
+
   // ── ADD YOUR NEXT CONCEPT HERE ─────────────────────────────────────────────
 
 ];
